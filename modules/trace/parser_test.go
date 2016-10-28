@@ -1,105 +1,115 @@
 package trace
 
-import "testing"
+import (
+	"testing"
 
-func testField(t *testing.T, result map[string]string, name, expect string) {
-	if result[name] != expect {
-		t.Errorf("RETURN = %s, EXPECT %s", result[name], expect)
-	}
-}
+	"github.com/stretchr/testify/assert"
+)
 
 func TestParseClock(t *testing.T) {
+	assert := assert.New(t)
 	testString := "c clk=1000"
-	result := ParseClock(testString)
-	testField(t, result, "clock", "1000")
+	actual := ParseClock(testString)
+	assert.Equal("1000", actual["clock"])
 }
 
 func TestParseInstructionUniqueID(t *testing.T) {
+	assert := assert.New(t)
 	testString := "id=1 cu=2"
-	result := ParseInstructionUniqueID(testString)
-	testField(t, result, "id", "1")
-	testField(t, result, "cu", "2")
+	actual := ParseInstructionUniqueID(testString)
+	assert.Equal("1", actual["id"])
+	assert.Equal("2", actual["cu"])
 }
 
 func TestParseInstructionNew(t *testing.T) {
-	testString := `si.new_inst id=1 cu=2 ib=3 wg=4 wf=5 uop_id=6 stg="f" asm="s_load_dwordx4 s[8:11], s[2:3], 0x60 // 0000022C: C0880358"`
-	result := ParseInstructionNew(testString)
-	testField(t, result, "id", "1")
-	testField(t, result, "cu", "2")
-	testField(t, result, "ib", "3")
-	testField(t, result, "wg", "4")
-	testField(t, result, "wf", "5")
-	testField(t, result, "uop_id", "6")
-	testField(t, result, "stg", "f")
-	testField(t, result, "asm", "s_load_dwordx4 s[8:11], s[2:3], 0x60 // 0000022C: C0880358")
+	assert := assert.New(t)
+	testString := `si.new_inst id=1 cu=2 ib=3 wg=4 wf=5 uop_id=6 stg="f" ` +
+		`asm="s_load_dwordx4 s[8:11], s[2:3], 0x60 // 0000022C: C0880358"`
+	actual := ParseInstructionNew(testString)
+	assert.Equal("1", actual["id"])
+	assert.Equal("2", actual["cu"])
+	assert.Equal("3", actual["ib"])
+	assert.Equal("4", actual["wg"])
+	assert.Equal("5", actual["wf"])
+	assert.Equal("6", actual["uop_id"])
+	assert.Equal("f", actual["stg"])
+	assert.Equal("s_load_dwordx4 s[8:11], s[2:3], 0x60 // 0000022C: C0880358", actual["asm"])
 
 }
 
 func TestParseInstructionExecute(t *testing.T) {
+	assert := assert.New(t)
 	testString := `si.inst id=1 cu=2 wf=3 uop_id=4 stg="su-r"`
-	result := ParseInstructionExecute(testString)
-	testField(t, result, "id", "1")
-	testField(t, result, "cu", "2")
-	testField(t, result, "wf", "3")
-	testField(t, result, "uop_id", "4")
-	testField(t, result, "stg", "su-r")
+	actual := ParseInstructionExecute(testString)
+	assert.Equal("1", actual["id"])
+	assert.Equal("2", actual["cu"])
+	assert.Equal("3", actual["wf"])
+	assert.Equal("4", actual["uop_id"])
+	assert.Equal("su-r", actual["stg"])
 }
 
 func TestParseInstructionEnd(t *testing.T) {
+	assert := assert.New(t)
 	testString := `si.end_inst id=1 cu=2`
-	result := ParseInstructionEnd(testString)
-	testField(t, result, "id", "1")
-	testField(t, result, "cu", "2")
+	actual := ParseInstructionEnd(testString)
+	assert.Equal("1", actual["id"])
+	assert.Equal("2", actual["cu"])
 }
 
 func TestParseMemoryUniqueID(t *testing.T) {
+	assert := assert.New(t)
 	testString := `name="A-1000"`
-	result := ParseMemoryUniqueID(testString)
-	testField(t, result, "id", "1000")
+	actual := ParseMemoryUniqueID(testString)
+	assert.Equal("1000", actual["id"])
 }
 
 func TestParseMemoryNewAccess(t *testing.T) {
+	assert := assert.New(t)
 	testString := `mem.new_access name="A-1000" type="load" state="l1-cu02:load" addr=0xc610`
-	result := ParseMemoryNewAccess(testString)
-	testField(t, result, "id", "1000")
-	testField(t, result, "type", "load")
-	testField(t, result, "module", "l1-cu02")
-	testField(t, result, "action", "load")
-	testField(t, result, "addr", "0xc610")
+	actual := ParseMemoryNewAccess(testString)
+	assert.Equal("1000", actual["id"])
+	assert.Equal("load", actual["type"])
+	assert.Equal("l1-cu02", actual["module"])
+	assert.Equal("load", actual["action"])
+	assert.Equal("0xc610", actual["addr"])
 }
 
 func TestParseMemoryAccess(t *testing.T) {
+	assert := assert.New(t)
 	testString := `mem.access name="A-123" state="l1-cu0:find_and_lock"`
-	result := ParseMemoryAccess(testString)
-	testField(t, result, "id", "123")
-	testField(t, result, "module", "l1-cu0")
-	testField(t, result, "action", "find_and_lock")
+	actual := ParseMemoryAccess(testString)
+	assert.Equal("123", actual["id"])
+	assert.Equal("l1-cu0", actual["module"])
+	assert.Equal("find_and_lock", actual["action"])
 }
 
 func TestParseMemoryEndAccess(t *testing.T) {
+	assert := assert.New(t)
 	testString := `mem.end_access name="A-1000"`
-	result := ParseMemoryEndAccess(testString)
-	testField(t, result, "id", "1000")
+	actual := ParseMemoryEndAccess(testString)
+	assert.Equal("1000", actual["id"])
 }
 
 func TestParseMemoryNewAccessBlock(t *testing.T) {
+	assert := assert.New(t)
 	testString := `mem.new_access_block cache="l2-4" access="A-64385" set=37 way=14`
-	result := ParseMemoryNewAccessBlock(testString)
-	testField(t, result, "cache", "l2-4")
-	testField(t, result, "level", "l2")
-	testField(t, result, "module", "4")
-	testField(t, result, "id", "A-64385")
-	testField(t, result, "set", "37")
-	testField(t, result, "way", "14")
+	actual := ParseMemoryNewAccessBlock(testString)
+	assert.Equal("l2-4", actual["cache"])
+	assert.Equal("l2", actual["level"])
+	assert.Equal("4", actual["module"])
+	assert.Equal("A-64385", actual["id"])
+	assert.Equal("37", actual["set"])
+	assert.Equal("14", actual["way"])
 }
 
 func TestParseMemoryEndAccessBlock(t *testing.T) {
+	assert := assert.New(t)
 	testString := `mem.end_access_block cache="l2-3" access="A-16705" set=101 way=15`
-	result := ParseMemoryEndAccessBlock(testString)
-	testField(t, result, "cache", "l2-3")
-	testField(t, result, "level", "l2")
-	testField(t, result, "module", "3")
-	testField(t, result, "id", "A-16705")
-	testField(t, result, "set", "101")
-	testField(t, result, "way", "15")
+	actual := ParseMemoryEndAccessBlock(testString)
+	assert.Equal("l2-3", actual["cache"])
+	assert.Equal("l2", actual["level"])
+	assert.Equal("3", actual["module"])
+	assert.Equal("A-16705", actual["id"])
+	assert.Equal("101", actual["set"])
+	assert.Equal("15", actual["way"])
 }
