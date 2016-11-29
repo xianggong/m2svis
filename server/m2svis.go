@@ -31,7 +31,7 @@ func Timeline(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// TimelineJSON To return timeline json data
+// TimelineJSON to return timeline json data
 func TimelineJSON(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	// start := r.Form["start"]

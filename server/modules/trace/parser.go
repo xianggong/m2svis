@@ -82,7 +82,8 @@ func (parseInfo *ParseInfo) GetID() string {
 	switch parseInfo.key {
 	case "si.new_inst", "si.inst", "si.end_inst":
 		return parseInfo.field["id"] + "_" + parseInfo.field["cu"]
-	case "mem.new_access", "mem.access", "mem.end_access", "mem.new_access_block", "mem.end_access_block":
+	case "mem.new_access", "mem.access", "mem.end_access",
+		"mem.new_access_block", "mem.end_access_block":
 		return parseInfo.field["id"]
 	}
 	return ""

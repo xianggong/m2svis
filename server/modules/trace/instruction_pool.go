@@ -6,12 +6,6 @@ type InstructionPool struct {
 	InProgress map[string]*Instruction
 }
 
-var instFuncTable = map[string]func(*Instruction, int, map[string]string){
-	"si.new_inst": (*Instruction).New,
-	"si.inst":     (*Instruction).Exe,
-	"si.end_inst": (*Instruction).End,
-}
-
 func (instPool *InstructionPool) getInst(parseInfo *ParseInfo) *Instruction {
 	id := parseInfo.GetID()
 	return instPool.InProgress[id]

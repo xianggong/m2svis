@@ -11,6 +11,7 @@ import (
 type Trace struct {
 	instPool InstructionPool
 	parser   Parser
+	db       Database
 }
 
 // Process trace
