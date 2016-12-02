@@ -5,13 +5,15 @@ import (
 	"compress/gzip"
 	"log"
 	"os"
+
+	"github.com/xianggong/m2svis/server/modules/database"
 )
 
 // Trace contains instruction pool and parser object
 type Trace struct {
 	instPool InstructionPool
 	parser   Parser
-	db       Database
+	db       database.Database
 }
 
 // Process trace
@@ -47,7 +49,7 @@ func (trace *Trace) Process(path string) {
 
 		info, err := trace.parser.Parse(line)
 		if err == nil {
-			trace.instPool.Receive(&info)
+			trace.instPool.Process(&info)
 		}
 	}
 }

@@ -8,11 +8,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-var opstmt = map[string]string{
-	"isttb": "INSERT INTO ? VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);",
-	"deltb": "DROP TABLE ?;",
-}
-
 // Database backend for storing and retriving data
 type Database struct {
 	config   Configuration

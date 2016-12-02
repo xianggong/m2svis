@@ -14,22 +14,51 @@ type Activity struct {
 
 // Instruction contains statistics of an instruction
 type Instruction struct {
-	id                                   int
-	start, finish, length                int
-	fetch, decode, issue, execute, write int
-	cu, ib, wf, wg, uop                  int
-	asm                                  string
-	lifeConcise                          []Activity
-	lifeVerbose                          []Activity
+	Start              int    `db:"st"`
+	Finish             int    `db:"fn"`
+	Length             int    `db:"len"`
+	FetchStart         int    `db:"fs"`
+	FetchEnd           int    `db:"fe"`
+	FetchStallWidth    int    `db:"fsw"`
+	FetchStallBuffer   int    `db:"fsb"`
+	IssueStart         int    `db:"is"`
+	IssueEnd           int    `db:"ie"`
+	IssieStallMax      int    `db:"ism"`
+	IssieStallWidth    int    `db:"isw"`
+	IssieStallBuffer   int    `db:"isb"`
+	ReadStart          int    `db:"rs"`
+	ReadEnd            int    `db:"re"`
+	DecodeStart        int    `db:"ds"`
+	DecodeEnd          int    `db:"de"`
+	DecodeStallWidth   int    `db:"dsw"`
+	DecodeStallBuffer  int    `db:"dsb"`
+	ExecuteStart       int    `db:"es"`
+	ExecuteEnd         int    `db:"ee"`
+	ExecuteStallWidth  int    `db:"esw"`
+	ExecuteStallBuffer int    `db:"esb"`
+	WriteStart         int    `db:"ws"`
+	WriteEnd           int    `db:"we"`
+	WriteStallWidth    int    `db:"wsw"`
+	WriteStallBuffer   int    `db:"wsb"`
+	ID                 int    `db:"id"`
+	CU                 int    `db:"cu"`
+	IB                 int    `db:"ib"`
+	WF                 int    `db:"wf"`
+	WG                 int    `db:"wg"`
+	UOP                int    `db:"uop"`
+	ExecutionUnit      string `db:"eu"`
+	Assembly           string `db:"asm"`
+	LifeConcise        []Activity
+	LifeVerbose        []Activity
 }
 
 func (inst *Instruction) sanityCheck(info map[string]string) error {
 	// Sanity check
 	id, _ := strconv.Atoi(info["id"])
 	cu, _ := strconv.Atoi(info["cu"])
-	if id != inst.id && cu != inst.cu {
+	if id != inst.ID && cu != inst.CU {
 		log.Printf("Expected id/cu=%d/%d, Actual id/cu=%d/%d\n",
-			inst.id, inst.cu, id, cu)
+			inst.ID, inst.CU, id, cu)
 		return errors.New("Instruction: id/cu doesn't match!")
 	}
 	return nil
@@ -37,16 +66,17 @@ func (inst *Instruction) sanityCheck(info map[string]string) error {
 
 // New record 'New' activity of an instruction
 func (inst *Instruction) New(cycle int, info map[string]string) {
-	inst.id, _ = strconv.Atoi(info["id"])
-	inst.start = cycle
-	inst.cu, _ = strconv.Atoi(info["cu"])
-	inst.ib, _ = strconv.Atoi(info["ib"])
-	inst.wf, _ = strconv.Atoi(info["wf"])
-	inst.wg, _ = strconv.Atoi(info["wg"])
-	inst.uop, _ = strconv.Atoi(info["uop_id"])
-	inst.asm = info["asm"]
-	inst.lifeVerbose = append(inst.lifeVerbose, Activity{cycle, info["stg"]})
-	inst.lifeConcise = append(inst.lifeConcise, Activity{0, info["stg"]})
+	inst.Start = cycle
+	inst.FetchStart = cycle
+	inst.ID, _ = strconv.Atoi(info["id"])
+	inst.CU, _ = strconv.Atoi(info["cu"])
+	inst.IB, _ = strconv.Atoi(info["ib"])
+	inst.WF, _ = strconv.Atoi(info["wf"])
+	inst.WG, _ = strconv.Atoi(info["wg"])
+	inst.UOP, _ = strconv.Atoi(info["uop_id"])
+	inst.Assembly = info["asm"]
+	inst.LifeVerbose = append(inst.LifeVerbose, Activity{cycle, info["stg"]})
+	inst.LifeConcise = append(inst.LifeConcise, Activity{0, info["stg"]})
 }
 
 // Exe record 'Execute' activity of an instruction
@@ -58,18 +88,18 @@ func (inst *Instruction) Exe(cycle int, info map[string]string) {
 	}
 
 	// Get current/previous activity and time interval
-	instPrevActivity := inst.lifeVerbose[len(inst.lifeVerbose)-1]
+	instPrevActivity := inst.LifeVerbose[len(inst.LifeVerbose)-1]
 	instCurrActivity := Activity{cycle, info["stg"]}
 	timeInterval := instCurrActivity.cycle - instPrevActivity.cycle
 
 	// Record verbose activity
-	inst.lifeVerbose = append(inst.lifeVerbose, instCurrActivity)
+	inst.LifeVerbose = append(inst.LifeVerbose, instCurrActivity)
 
 	// Update concise activity
-	inst.lifeConcise[len(inst.lifeConcise)-1].cycle += timeInterval
+	inst.LifeConcise[len(inst.LifeConcise)-1].cycle += timeInterval
 	if instCurrActivity.activity != instPrevActivity.activity {
 		activity := Activity{0, instCurrActivity.activity}
-		inst.lifeConcise = append(inst.lifeConcise, activity)
+		inst.LifeConcise = append(inst.LifeConcise, activity)
 	}
 }
 
@@ -82,27 +112,26 @@ func (inst *Instruction) End(cycle int, info map[string]string) {
 	}
 
 	// Update
-	inst.finish = cycle
-	inst.length = inst.finish - inst.start
+	inst.Finish = cycle
+	inst.Length = inst.Finish - inst.Start
 	info["stg"] = "end"
 	inst.Exe(cycle, info)
 
+	// Update statistics
+	for _, activity := range inst.LifeConcise {
+		switch activity.activity {
+		case "f":
+			inst.FetchEnd = inst.FetchStart + activity.cycle
+		case "s_cu_fe_rdy":
+			inst.FetchStallBuffer = activity.cycle
+			inst.FetchEnd += activity.cycle
+		case "i":
+			inst.IssueStart = inst.FetchEnd
+		}
+	}
+
 	// Remove the last "end" activity
-	inst.lifeConcise = inst.lifeConcise[:len(inst.lifeConcise)-1]
-}
-
-// IsValid to check completeness of instruction
-func (inst *Instruction) IsValid() bool {
-	isValid := true
-
-	// Check field
-	isValid = isValid && inst.start != 0
-	isValid = isValid && inst.length != 0
-	isValid = isValid && inst.asm != ""
-	isValid = isValid && len(inst.lifeConcise) != 0
-	isValid = isValid && len(inst.lifeVerbose) != 0
-
-	return isValid
+	inst.LifeConcise = inst.LifeConcise[:len(inst.LifeConcise)-1]
 }
 
 // InstructionJSON for representing instruction to timeline
@@ -122,13 +151,13 @@ func (inst *Instruction) GetJSON() []*InstructionJSON {
 	var instructionJSONArray []*InstructionJSON
 
 	// Common field
-	instID := "inst_" + strconv.Itoa(inst.id) + "_"
+	instID := "inst_" + strconv.Itoa(inst.ID) + "_"
 	subgroup := instID
 
-	cycle := inst.start
-	for index, activity := range inst.lifeConcise {
+	cycle := inst.Start
+	for index, activity := range inst.LifeConcise {
 		id := instID + activity.activity
-		group := inst.cu
+		group := inst.CU
 		content := activity.activity
 		activityStart := cycle
 		activityEnd := cycle + activity.cycle
@@ -149,13 +178,13 @@ func (inst *Instruction) GetOverviewJSON() []*InstructionJSON {
 	// Store return
 	var instructionJSONArray []*InstructionJSON
 
-	id := "inst_" + strconv.Itoa(inst.id) + "_" + strconv.Itoa(inst.cu)
-	group := inst.cu
+	id := "inst_" + strconv.Itoa(inst.ID) + "_" + strconv.Itoa(inst.CU)
+	group := inst.CU
 	subgroup := id
-	content := inst.asm
+	content := inst.Assembly
 
 	instJSON := InstructionJSON{ID: id, Group: group, Content: content,
-		Start: inst.start, End: inst.start + inst.length, SubGroup: subgroup}
+		Start: inst.Start, End: inst.Start + inst.Length, SubGroup: subgroup}
 	instructionJSONArray = append(instructionJSONArray, &instJSON)
 
 	return instructionJSONArray

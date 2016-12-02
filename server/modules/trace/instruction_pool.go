@@ -1,5 +1,7 @@
 package trace
 
+import "database/sql"
+
 // InstructionPool contains instruction objects
 type InstructionPool struct {
 	Ready      []*Instruction
@@ -11,8 +13,8 @@ func (instPool *InstructionPool) getInst(parseInfo *ParseInfo) *Instruction {
 	return instPool.InProgress[id]
 }
 
-// Receive information from parser and process the data
-func (instPool *InstructionPool) Receive(parseInfo *ParseInfo) (err error) {
+// Process information from parser and process the data
+func (instPool *InstructionPool) Process(parseInfo *ParseInfo) (err error) {
 	if instPool.InProgress == nil {
 		instPool.InProgress = make(map[string]*Instruction)
 	}
@@ -51,10 +53,6 @@ func (instPool *InstructionPool) Receive(parseInfo *ParseInfo) (err error) {
 		// Update
 		inst.End(cycle, field)
 
-		// fmt.Printf("%d %d [%d-%d]: %s\n", inst.id, inst.cu, inst.start,
-		// 	inst.length, inst.asm)
-		// fmt.Println(inst.lifeConcise)
-
 		// Push to ready pool and remove from progress pool
 		id := parseInfo.GetID()
 		instPool.Ready = append(instPool.Ready, inst)
@@ -62,4 +60,8 @@ func (instPool *InstructionPool) Receive(parseInfo *ParseInfo) (err error) {
 	}
 
 	return nil
+}
+
+func (instPool *InstructionPool) PushToDatabase(db *sql.DB) {
+
 }

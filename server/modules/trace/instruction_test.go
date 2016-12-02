@@ -26,18 +26,18 @@ func TestInstructionNew(t *testing.T) {
 	inst.New(1000, inputNew)
 
 	// Test body
-	assert.Equal(1, inst.id)
-	assert.Equal(1000, inst.start)
-	assert.Equal(0, inst.finish)
-	assert.Equal(0, inst.length)
-	assert.Equal(2, inst.cu)
-	assert.Equal(3, inst.ib)
-	assert.Equal(4, inst.wg)
-	assert.Equal(5, inst.wf)
-	assert.Equal(6, inst.uop)
-	assert.Equal("s_load_dwordx4 s[8:11], s[2:3], 0x60 // 0000022C: C0880358", inst.asm)
-	assert.Equal(Activity{1000, "f"}, inst.lifeVerbose[0])
-	assert.Equal(Activity{0, "f"}, inst.lifeConcise[0])
+	assert.Equal(1, inst.ID)
+	assert.Equal(1000, inst.Start)
+	assert.Equal(0, inst.Finish)
+	assert.Equal(0, inst.Length)
+	assert.Equal(2, inst.CU)
+	assert.Equal(3, inst.IB)
+	assert.Equal(4, inst.WG)
+	assert.Equal(5, inst.WF)
+	assert.Equal(6, inst.UOP)
+	assert.Equal("s_load_dwordx4 s[8:11], s[2:3], 0x60 // 0000022C: C0880358", inst.Assembly)
+	assert.Equal(Activity{1000, "f"}, inst.LifeVerbose[0])
+	assert.Equal(Activity{0, "f"}, inst.LifeConcise[0])
 }
 
 // clk=1000 si.new_inst id=1 cu=2 ib=3 wg=4 wf=5 uop_id=6 stg="f" asm="s_load_dwordx4 s[8:11], s[2:3], 0x60 // 0000022C: C0880358"
@@ -72,19 +72,19 @@ func TestInstructionExe(t *testing.T) {
 	inst.Exe(1500, inputExe)
 
 	// Test body
-	assert.Equal(1, inst.id)
-	assert.Equal(1000, inst.start)
-	assert.Equal(0, inst.finish)
-	assert.Equal(0, inst.length)
-	assert.Equal(2, inst.cu)
-	assert.Equal(3, inst.ib)
-	assert.Equal(4, inst.wg)
-	assert.Equal(5, inst.wf)
-	assert.Equal(6, inst.uop)
-	assert.Equal("s_load_dwordx4 s[8:11], s[2:3], 0x60 // 0000022C: C0880358", inst.asm)
-	assert.Equal(Activity{1000, "f"}, inst.lifeVerbose[0])
-	assert.Equal(Activity{1500, "su-r"}, inst.lifeVerbose[1])
-	assert.Equal(Activity{500, "f"}, inst.lifeConcise[0])
+	assert.Equal(1, inst.ID)
+	assert.Equal(1000, inst.Start)
+	assert.Equal(0, inst.Finish)
+	assert.Equal(0, inst.Length)
+	assert.Equal(2, inst.CU)
+	assert.Equal(3, inst.IB)
+	assert.Equal(4, inst.WG)
+	assert.Equal(5, inst.WF)
+	assert.Equal(6, inst.UOP)
+	assert.Equal("s_load_dwordx4 s[8:11], s[2:3], 0x60 // 0000022C: C0880358", inst.Assembly)
+	assert.Equal(Activity{1000, "f"}, inst.LifeVerbose[0])
+	assert.Equal(Activity{1500, "su-r"}, inst.LifeVerbose[1])
+	assert.Equal(Activity{500, "f"}, inst.LifeConcise[0])
 }
 
 // clk=1000 si.new_inst id=1 cu=2 ib=3 wg=4 wf=5 uop_id=6 stg="f" asm="s_load_dwordx4 s[8:11], s[2:3], 0x60 // 0000022C: C0880358"
@@ -120,19 +120,19 @@ func TestInstructionEnd(t *testing.T) {
 	inst.Exe(1500, inputExe)
 
 	// Test body
-	assert.Equal(1, inst.id)
-	assert.Equal(1000, inst.start)
-	assert.Equal(0, inst.finish)
-	assert.Equal(0, inst.length)
-	assert.Equal(2, inst.cu)
-	assert.Equal(3, inst.ib)
-	assert.Equal(4, inst.wg)
-	assert.Equal(5, inst.wf)
-	assert.Equal(6, inst.uop)
-	assert.Equal("s_load_dwordx4 s[8:11], s[2:3], 0x60 // 0000022C: C0880358", inst.asm)
-	assert.Equal(Activity{1000, "f"}, inst.lifeVerbose[0])
-	assert.Equal(Activity{1500, "su-r"}, inst.lifeVerbose[1])
-	assert.Equal(Activity{500, "f"}, inst.lifeConcise[0])
+	assert.Equal(1, inst.ID)
+	assert.Equal(1000, inst.Start)
+	assert.Equal(0, inst.Finish)
+	assert.Equal(0, inst.Length)
+	assert.Equal(2, inst.CU)
+	assert.Equal(3, inst.IB)
+	assert.Equal(4, inst.WG)
+	assert.Equal(5, inst.WF)
+	assert.Equal(6, inst.UOP)
+	assert.Equal("s_load_dwordx4 s[8:11], s[2:3], 0x60 // 0000022C: C0880358", inst.Assembly)
+	assert.Equal(Activity{1000, "f"}, inst.LifeVerbose[0])
+	assert.Equal(Activity{1500, "su-r"}, inst.LifeVerbose[1])
+	assert.Equal(Activity{500, "f"}, inst.LifeConcise[0])
 
 	// Input
 	inputEnd := map[string]string{}
@@ -143,18 +143,14 @@ func TestInstructionEnd(t *testing.T) {
 	inst.End(2000, inputEnd)
 
 	// Test body
-	assert.Equal(1000, inst.start)
-	assert.Equal(2000, inst.finish)
-	assert.Equal(1000, inst.length)
-	assert.Equal(3, len(inst.lifeVerbose))
-	assert.Equal(Activity{1000, "f"}, inst.lifeVerbose[0])
-	assert.Equal(Activity{1500, "su-r"}, inst.lifeVerbose[1])
-	assert.Equal(Activity{2000, "end"}, inst.lifeVerbose[2])
-	assert.Equal(2, len(inst.lifeConcise))
-	assert.Equal(Activity{500, "f"}, inst.lifeConcise[0])
-	assert.Equal(Activity{500, "su-r"}, inst.lifeConcise[1])
-}
-
-func TestInstructionGetJSON(t *testing.T) {
-	// TODO
+	assert.Equal(1000, inst.Start)
+	assert.Equal(2000, inst.Finish)
+	assert.Equal(1000, inst.Length)
+	assert.Equal(3, len(inst.LifeVerbose))
+	assert.Equal(Activity{1000, "f"}, inst.LifeVerbose[0])
+	assert.Equal(Activity{1500, "su-r"}, inst.LifeVerbose[1])
+	assert.Equal(Activity{2000, "end"}, inst.LifeVerbose[2])
+	assert.Equal(2, len(inst.LifeConcise))
+	assert.Equal(Activity{500, "f"}, inst.LifeConcise[0])
+	assert.Equal(Activity{500, "su-r"}, inst.LifeConcise[1])
 }
