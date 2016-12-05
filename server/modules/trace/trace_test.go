@@ -1,10 +1,16 @@
 package trace
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
 func TestTrace(t *testing.T) {
 	// TODO
 	var trace Trace
-	trace.Init("test/config.toml")
+	err := trace.Init("test/config.toml")
+	if err != nil {
+		fmt.Println(err)
+	}
 	trace.Process("test/test.gz")
 }

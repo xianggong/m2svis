@@ -1,28 +1,8 @@
 package trace
 
-import (
-	"github.com/jmoiron/sqlx"
-	"github.com/xianggong/m2svis/server/modules/database"
-)
-
 // InstPool contains instruction objects
 type InstPool struct {
-	Buffer   map[string]*Instruction
-	Config   database.Configuration
-	Database *sqlx.DB
-}
-
-// Init connect to database specified in the configuration file
-func (instPool *InstPool) Init(configFile string) {
-	// Get data source name
-	dsn := instPool.Config.GetDSN()
-
-	// Connect to database
-	instPool.Database, _ = sqlx.Connect("mysql", dsn)
-
-	// Create table in database
-	inst := &Instruction{}
-	instPool.Database.MustExec(inst.GetSQLQueryInsertTable("test"))
+	Buffer map[string]*Instruction
 }
 
 func (instPool *InstPool) getInst(parseInfo *ParseInfo) *Instruction {
@@ -30,8 +10,10 @@ func (instPool *InstPool) getInst(parseInfo *ParseInfo) *Instruction {
 	return instPool.Buffer[id]
 }
 
-// Process information from parser and process the data
-func (instPool *InstPool) Process(parseInfo *ParseInfo) (err error) {
+// Process information from parser and process the data, return an instruction
+// if it completes all the pipeline stages
+func (instPool *InstPool) Process(parseInfo *ParseInfo) (inst *Instruction, err error) {
+	// Init insturction buffer if neccesary
 	if instPool.Buffer == nil {
 		instPool.Buffer = make(map[string]*Instruction)
 	}
@@ -46,7 +28,7 @@ func (instPool *InstPool) Process(parseInfo *ParseInfo) (err error) {
 		inst := &Instruction{}
 
 		// Update
-		inst.New(cycle, field)
+		err = inst.New(cycle, field)
 
 		// Push to repo
 		id := parseInfo.GetID()
@@ -57,19 +39,21 @@ func (instPool *InstPool) Process(parseInfo *ParseInfo) (err error) {
 		inst := instPool.getInst(parseInfo)
 
 		// Update
-		inst.Exe(cycle, field)
+		err = inst.Exe(cycle, field)
 
 	case "si.end_inst":
 		// Get instruction object
 		inst := instPool.getInst(parseInfo)
 
 		// Update
-		inst.End(cycle, field)
+		err = inst.End(cycle, field)
 
-		// Save to database and remove from buffer
+		// Remove from buffer
 		id := parseInfo.GetID()
 		delete(instPool.Buffer, id)
+
+		return inst, err
 	}
 
-	return nil
+	return nil, err
 }

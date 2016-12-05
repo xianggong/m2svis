@@ -6,6 +6,7 @@ import (
 	"log"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 // Activity of an instruction
@@ -16,47 +17,47 @@ type Activity struct {
 
 // Instruction contains statistics of an instruction
 type Instruction struct {
-	Start              int    `db:"st" sql:"st INTEGER," json:"start"`
-	Finish             int    `db:"fn" sql:"fn INTEGER," json:"end"`
-	Length             int    `db:"len" sql:"len INTEGER,"`
-	FetchStart         int    `db:"fs" sql:"fs INTEGER,"`
-	FetchEnd           int    `db:"fe" sql:"fe INTEGER,"`
-	FetchStallWidth    int    `db:"fsw" sql:"fsw INTEGER,"`
-	FetchStallBuffer   int    `db:"fsb" sql:"fsb INTEGER,"`
-	IssueStart         int    `db:"is" sql:"is INTEGER,"`
-	IssueEnd           int    `db:"ie" sql:"ie INTEGER,"`
-	IssueStallMax      int    `db:"ism" sql:"ism INTEGER,"`
-	IssueStallWidth    int    `db:"isw" sql:"isw INTEGER,"`
-	IssueStallBuffer   int    `db:"isb" sql:"isb INTEGER,"`
-	ReadStart          int    `db:"rs" sql:"rs INTEGER,"`
-	ReadEnd            int    `db:"re" sql:"re INTEGER,"`
-	ReadStallWidth     int    `db:"rsw" sql:"rsw INTEGER,"`
-	REadStallBuffer    int    `db:"rsb" sql:"rsb INTEGER,"`
-	DecodeStart        int    `db:"ds" sql:"ds INTEGER,"`
-	DecodeEnd          int    `db:"de" sql:"de INTEGER,"`
-	DecodeStallWidth   int    `db:"dsw" sql:"dsw INTEGER,"`
-	DecodeStallBuffer  int    `db:"dsb" sql:"dsb INTEGER,"`
-	ExecuteStart       int    `db:"es" sql:"es INTEGER,"`
-	ExecuteEnd         int    `db:"ee" sql:"ee INTEGER,"`
-	ExecuteStallWidth  int    `db:"esw" sql:"esw INTEGER,"`
-	ExecuteStallBuffer int    `db:"esb" sql:"esb INTEGER,"`
-	WriteStart         int    `db:"ws" sql:"ws INTEGER,"`
-	WriteEnd           int    `db:"we" sql:"we INTEGER,"`
-	WriteStallWidth    int    `db:"wsw" sql:"wsw INTEGER,"`
-	WriteStallBuffer   int    `db:"wsb" sql:"wsb INTEGER,"`
-	ID                 int    `db:"id" sql:"id INTEGER," json:"subgroup"`
-	CU                 int    `db:"cu" sql:"cu INTEGER," json:"group"`
-	IB                 int    `db:"ib" sql:"ib INTEGER,"`
-	WF                 int    `db:"wf" sql:"wf INTEGER,"`
-	WG                 int    `db:"wg" sql:"wg INTEGER,"`
-	UOP                int    `db:"uop" sql:"uop INTEGER,"`
-	ExecutionUnit      int    `db:"eu" sql:"eu INTEGER,"`
-	Assembly           string `db:"asm" sql:"asm VARCHAR" json:"content"`
+	Start              int    `db:"st" dtype:"INTEGER" json:"start"`
+	Finish             int    `db:"fn" dtype:"INTEGER" json:"end"`
+	Length             int    `db:"len" dtype:"INTEGER"`
+	FetchStart         int    `db:"fs" dtype:"INTEGER"`
+	FetchEnd           int    `db:"fe" dtype:"INTEGER"`
+	FetchStallWidth    int    `db:"fsw" dtype:"INTEGER"`
+	FetchStallBuffer   int    `db:"fsb" dtype:"INTEGER"`
+	IssueStart         int    `db:"isu" dtype:"INTEGER"`
+	IssueEnd           int    `db:"ie" dtype:"INTEGER"`
+	IssueStallMax      int    `db:"ism" dtype:"INTEGER"`
+	IssueStallWidth    int    `db:"isw" dtype:"INTEGER"`
+	IssueStallBuffer   int    `db:"isb" dtype:"INTEGER"`
+	ReadStart          int    `db:"rs" dtype:"INTEGER"`
+	ReadEnd            int    `db:"re" dtype:"INTEGER"`
+	ReadStallWidth     int    `db:"rsw" dtype:"INTEGER"`
+	ReadStallBuffer    int    `db:"rsb" dtype:"INTEGER"`
+	DecodeStart        int    `db:"ds" dtype:"INTEGER"`
+	DecodeEnd          int    `db:"de" dtype:"INTEGER"`
+	DecodeStallWidth   int    `db:"dsw" dtype:"INTEGER"`
+	DecodeStallBuffer  int    `db:"dsb" dtype:"INTEGER"`
+	ExecuteStart       int    `db:"es" dtype:"INTEGER"`
+	ExecuteEnd         int    `db:"ee" dtype:"INTEGER"`
+	ExecuteStallWidth  int    `db:"esw" dtype:"INTEGER"`
+	ExecuteStallBuffer int    `db:"esb" dtype:"INTEGER"`
+	WriteStart         int    `db:"ws" dtype:"INTEGER"`
+	WriteEnd           int    `db:"we" dtype:"INTEGER"`
+	WriteStallWidth    int    `db:"wsw" dtype:"INTEGER"`
+	WriteStallBuffer   int    `db:"wsb" dtype:"INTEGER"`
+	ID                 int    `db:"id" dtype:"INTEGER" json:"subgroup"`
+	CU                 int    `db:"cu" dtype:"INTEGER" json:"group"`
+	IB                 int    `db:"ib" dtype:"INTEGER"`
+	WF                 int    `db:"wf" dtype:"INTEGER"`
+	WG                 int    `db:"wg" dtype:"INTEGER"`
+	UOP                int    `db:"uop" dtype:"INTEGER"`
+	ExecutionUnit      int    `db:"eu" dtype:"INTEGER"`
+	Assembly           string `db:"asm" dtype:"TEXT" json:"content"`
 	LifeConcise        []Activity
 	LifeVerbose        []Activity
 }
 
-func (inst *Instruction) sanityCheck(info map[string]string) error {
+func (inst *Instruction) matchCheck(info map[string]string) error {
 	// Sanity check
 	id, _ := strconv.Atoi(info["id"])
 	cu, _ := strconv.Atoi(info["cu"])
@@ -65,11 +66,14 @@ func (inst *Instruction) sanityCheck(info map[string]string) error {
 			inst.ID, inst.CU, id, cu)
 		return errors.New("Instruction: id/cu doesn't match!")
 	}
+
+	// Return
 	return nil
 }
 
 // New record 'New' activity of an instruction
-func (inst *Instruction) New(cycle int, info map[string]string) {
+func (inst *Instruction) New(cycle int, info map[string]string) error {
+	// Record statistics
 	inst.Start = cycle
 	inst.FetchStart = cycle
 	inst.ID, _ = strconv.Atoi(info["id"])
@@ -81,14 +85,17 @@ func (inst *Instruction) New(cycle int, info map[string]string) {
 	inst.Assembly = info["asm"]
 	inst.LifeVerbose = append(inst.LifeVerbose, Activity{cycle, info["stg"]})
 	inst.LifeConcise = append(inst.LifeConcise, Activity{0, info["stg"]})
+
+	// Return
+	return nil
 }
 
 // Exe record 'Execute' activity of an instruction
-func (inst *Instruction) Exe(cycle int, info map[string]string) {
+func (inst *Instruction) Exe(cycle int, info map[string]string) error {
 	// Sanity check
-	err := inst.sanityCheck(info)
+	err := inst.matchCheck(info)
 	if err != nil {
-		return
+		return err
 	}
 
 	// Get current/previous activity and time interval
@@ -105,14 +112,17 @@ func (inst *Instruction) Exe(cycle int, info map[string]string) {
 		activity := Activity{0, instCurrActivity.activity}
 		inst.LifeConcise = append(inst.LifeConcise, activity)
 	}
+
+	// Return
+	return nil
 }
 
 // End record 'End' activity of an instruction
-func (inst *Instruction) End(cycle int, info map[string]string) {
+func (inst *Instruction) End(cycle int, info map[string]string) error {
 	// Sanity check
-	err := inst.sanityCheck(info)
+	err := inst.matchCheck(info)
 	if err != nil {
-		return
+		return err
 	}
 
 	// Update
@@ -190,11 +200,11 @@ func (inst *Instruction) End(cycle int, info map[string]string) {
 		case "bu-w", "lds-w", "su-w", "simd-w", "mem-w":
 			inst.WriteStart = currStart
 			inst.WriteEnd = currEnd
-		// Stall: execute width
+		// Stall: write width
 		case "s_br_wr_wth", "s_lds_wr_wth", "s_sl_wr_wth", "s_simd_wr_wth", "s_vc_mem_wr_wth":
 			inst.WriteStallWidth += activity.cycle
 			inst.WriteEnd = currEnd
-		// Stall: execute buffer full
+		// Stall: write buffer full
 		case "s_br_wr_buf", "s_lds_wr_buf", "s_sl_wr_buf", "s_simd_wr_buf", "s_vc_mem_wr_buf":
 			inst.WriteStallBuffer += activity.cycle
 			inst.WriteEnd = currEnd
@@ -203,32 +213,56 @@ func (inst *Instruction) End(cycle int, info map[string]string) {
 
 	// Remove the last "end" activity
 	inst.LifeConcise = inst.LifeConcise[:len(inst.LifeConcise)-1]
+
+	// Return
+	return nil
 }
 
-// GetSQLQueryInsertTable returns SQL query string to insert an instruction table
-func (inst *Instruction) GetSQLQueryInsertTable(tableName string) string {
-	query := "CREATE TABLE " + tableName + "("
+func GetInstructionSQLColumnNames(prefix string, suffix string) (str string) {
+	str = "("
 
+	// Loop through the struct's tags and append to query
+	inst := new(Instruction)
+	val := reflect.ValueOf(inst).Elem()
+	for i := 0; i < val.NumField(); i++ {
+		typeField := val.Type().Field(i)
+		tag := typeField.Tag
+		if tag != "" {
+			str += prefix + tag.Get("db") + suffix
+		}
+	}
+
+	str = strings.TrimSuffix(str, suffix)
+	str += ")"
+
+	return str
+}
+
+// GetSQLQueryNewInstTable returns SQL query string to insert an instruction table
+func GetSQLQueryNewInstTable(tableName string) string {
+	inst := new(Instruction)
+	query := "CREATE TABLE IF NOT EXISTS " + tableName + "("
 	// Loop through the struct's tags and append to query
 	val := reflect.ValueOf(inst).Elem()
 	for i := 0; i < val.NumField(); i++ {
 		typeField := val.Type().Field(i)
 		tag := typeField.Tag
 		if tag != "" {
-			query += tag.Get("sql")
+			query += tag.Get("db") + " " + tag.Get("dtype") + ", "
 		}
 	}
+	query = strings.TrimSuffix(query, ", ")
 	query += ");"
 
 	return query
 }
 
-// Dump returns a formatted string that is easy to read
+// Dump returns a formatted string that is friendly to read
 func (inst *Instruction) Dump() string {
 	var infoField string
 	var infoValue string
 
-	// Loop through the struct's tags and append to info
+	// Use reflect to loop through the struct's tags and append to info
 	val := reflect.ValueOf(inst).Elem()
 	for i := 0; i < val.NumField(); i++ {
 		valueField := val.Field(i)

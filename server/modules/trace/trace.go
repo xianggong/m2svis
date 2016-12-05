@@ -5,21 +5,61 @@ import (
 	"compress/gzip"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/jmoiron/sqlx"
+	"github.com/xianggong/m2svis/server/modules/database"
 )
 
 // Trace contains instruction pool and parser object
 type Trace struct {
 	InstPool InstPool
 	Parser   Parser
+	Config   database.Configuration
+	Database *sqlx.DB
 }
 
 // Init prepares database
-func (trace *Trace) Init(configFile string) {
-	trace.InstPool.Config.Init(configFile)
+func (trace *Trace) Init(configFile string) (err error) {
+	// Init configuration and get DSN
+	trace.Config.Init(configFile)
+
+	// Connect to database
+	trace.Database, err = sqlx.Open("mysql", trace.Config.GetDSN())
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	// Force a connection and test that it worked
+	err = trace.Database.Ping()
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	return nil
 }
 
 // Process trace
 func (trace *Trace) Process(path string) {
+	// Get filename, remove suffix when neccesary
+	fileName := filepath.Base(path)
+	fileName = strings.TrimSuffix(fileName, ".gz")
+
+	// Create database with the file name
+	query := "CREATE DATABASE IF NOT EXISTS " + fileName
+	trace.Database.MustExec(query)
+
+	// Use database
+	query = "USE " + fileName
+	trace.Database.MustExec(query)
+
+	// Create instruction table
+	query = GetSQLQueryNewInstTable("instructions")
+	trace.Database.MustExec(query)
+
 	// Get trace file
 	file, err := os.Open(path)
 	if err != nil {
@@ -51,7 +91,12 @@ func (trace *Trace) Process(path string) {
 
 		info, err := trace.Parser.Parse(line)
 		if err == nil {
-			trace.InstPool.Process(&info)
+			inst, err := trace.InstPool.Process(&info)
+			if inst != nil && err == nil {
+				query = "INSERT INTO instructions " + GetInstructionSQLColumnNames("", ", ")
+				query += " VALUES " + GetInstructionSQLColumnNames(":", ",")
+				go trace.Database.NamedExec(query, inst)
+			}
 		}
 	}
 }
