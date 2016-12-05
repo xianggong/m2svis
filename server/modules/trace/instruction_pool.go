@@ -1,26 +1,39 @@
 package trace
 
-import "database/sql"
+import (
+	"github.com/jmoiron/sqlx"
+	"github.com/xianggong/m2svis/server/modules/database"
+)
 
-// InstructionPool contains instruction objects
-type InstructionPool struct {
-	Ready      []*Instruction
-	InProgress map[string]*Instruction
+// InstPool contains instruction objects
+type InstPool struct {
+	Buffer   map[string]*Instruction
+	Config   database.Configuration
+	Database *sqlx.DB
 }
 
-func (instPool *InstructionPool) getInst(parseInfo *ParseInfo) *Instruction {
+// Init connect to database specified in the configuration file
+func (instPool *InstPool) Init(configFile string) {
+	// Get data source name
+	dsn := instPool.Config.GetDSN()
+
+	// Connect to database
+	instPool.Database, _ = sqlx.Connect("mysql", dsn)
+
+	// Create table in database
+	inst := &Instruction{}
+	instPool.Database.MustExec(inst.GetSQLQueryInsertTable("test"))
+}
+
+func (instPool *InstPool) getInst(parseInfo *ParseInfo) *Instruction {
 	id := parseInfo.GetID()
-	return instPool.InProgress[id]
+	return instPool.Buffer[id]
 }
 
 // Process information from parser and process the data
-func (instPool *InstructionPool) Process(parseInfo *ParseInfo) (err error) {
-	if instPool.InProgress == nil {
-		instPool.InProgress = make(map[string]*Instruction)
-	}
-
-	if instPool.Ready == nil {
-		instPool.Ready = []*Instruction{}
+func (instPool *InstPool) Process(parseInfo *ParseInfo) (err error) {
+	if instPool.Buffer == nil {
+		instPool.Buffer = make(map[string]*Instruction)
 	}
 
 	// Get cycle and field information
@@ -37,7 +50,7 @@ func (instPool *InstructionPool) Process(parseInfo *ParseInfo) (err error) {
 
 		// Push to repo
 		id := parseInfo.GetID()
-		instPool.InProgress[id] = inst
+		instPool.Buffer[id] = inst
 
 	case "si.inst":
 		// Get instruction object
@@ -53,15 +66,10 @@ func (instPool *InstructionPool) Process(parseInfo *ParseInfo) (err error) {
 		// Update
 		inst.End(cycle, field)
 
-		// Push to ready pool and remove from progress pool
+		// Save to database and remove from buffer
 		id := parseInfo.GetID()
-		instPool.Ready = append(instPool.Ready, inst)
-		delete(instPool.InProgress, id)
+		delete(instPool.Buffer, id)
 	}
 
 	return nil
-}
-
-func (instPool *InstructionPool) PushToDatabase(db *sql.DB) {
-
 }

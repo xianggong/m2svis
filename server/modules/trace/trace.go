@@ -5,15 +5,17 @@ import (
 	"compress/gzip"
 	"log"
 	"os"
-
-	"github.com/xianggong/m2svis/server/modules/database"
 )
 
 // Trace contains instruction pool and parser object
 type Trace struct {
-	instPool InstructionPool
-	parser   Parser
-	db       database.Database
+	InstPool InstPool
+	Parser   Parser
+}
+
+// Init prepares database
+func (trace *Trace) Init(configFile string) {
+	trace.InstPool.Config.Init(configFile)
 }
 
 // Process trace
@@ -38,7 +40,7 @@ func (trace *Trace) Process(path string) {
 	scanner := bufio.NewScanner(gzfile)
 	scanner.Split(bufio.ScanLines)
 
-	// Read line by line and parse
+	// Parse line by line
 	for scanner.Scan() {
 		line := scanner.Text()
 
@@ -47,24 +49,24 @@ func (trace *Trace) Process(path string) {
 			log.Fatal(err)
 		}
 
-		info, err := trace.parser.Parse(line)
+		info, err := trace.Parser.Parse(line)
 		if err == nil {
-			trace.instPool.Process(&info)
+			trace.InstPool.Process(&info)
 		}
 	}
 }
 
 // GetJSON returns JSON arrays
-func (trace *Trace) GetJSON() []*InstructionJSON {
-	if len(trace.instPool.Ready) == 0 {
-		return nil
-	}
+// func (trace *Trace) GetJSON() []*InstructionJSON {
+// 	if len(trace.instPool.Ready) == 0 {
+// 		return nil
+// 	}
 
-	var traceJSON []*InstructionJSON
+// 	var traceJSON []*InstructionJSON
 
-	for _, inst := range trace.instPool.Ready {
-		traceJSON = append(traceJSON, inst.GetOverviewJSON()...)
-	}
+// 	for _, inst := range trace.instPool.Ready {
+// 		traceJSON = append(traceJSON, inst.GetOverviewJSON()...)
+// 	}
 
-	return traceJSON
-}
+// 	return traceJSON
+// }

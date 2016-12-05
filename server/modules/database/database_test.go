@@ -131,4 +131,6 @@ func TestDelInstTable(t *testing.T) {
 
 	_, err = db.DelInstTable("testInst")
 	assert.Nil(err)
+
+	TestDelDatabase(t)
 }
