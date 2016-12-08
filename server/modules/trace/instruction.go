@@ -17,44 +17,44 @@ type Activity struct {
 
 // Instruction contains statistics of an instruction
 type Instruction struct {
-	Start              int    `db:"st" dtype:"INTEGER" json:"start"`
-	Finish             int    `db:"fn" dtype:"INTEGER" json:"end"`
-	Length             int    `db:"len" dtype:"INTEGER"`
-	FetchStart         int    `db:"fs" dtype:"INTEGER"`
-	FetchEnd           int    `db:"fe" dtype:"INTEGER"`
-	FetchStallWidth    int    `db:"fsw" dtype:"INTEGER"`
-	FetchStallBuffer   int    `db:"fsb" dtype:"INTEGER"`
-	IssueStart         int    `db:"isu" dtype:"INTEGER"`
-	IssueEnd           int    `db:"ie" dtype:"INTEGER"`
-	IssueStallMax      int    `db:"ism" dtype:"INTEGER"`
-	IssueStallWidth    int    `db:"isw" dtype:"INTEGER"`
-	IssueStallBuffer   int    `db:"isb" dtype:"INTEGER"`
-	ReadStart          int    `db:"rs" dtype:"INTEGER"`
-	ReadEnd            int    `db:"re" dtype:"INTEGER"`
-	ReadStallWidth     int    `db:"rsw" dtype:"INTEGER"`
-	ReadStallBuffer    int    `db:"rsb" dtype:"INTEGER"`
-	DecodeStart        int    `db:"ds" dtype:"INTEGER"`
-	DecodeEnd          int    `db:"de" dtype:"INTEGER"`
-	DecodeStallWidth   int    `db:"dsw" dtype:"INTEGER"`
-	DecodeStallBuffer  int    `db:"dsb" dtype:"INTEGER"`
-	ExecuteStart       int    `db:"es" dtype:"INTEGER"`
-	ExecuteEnd         int    `db:"ee" dtype:"INTEGER"`
-	ExecuteStallWidth  int    `db:"esw" dtype:"INTEGER"`
-	ExecuteStallBuffer int    `db:"esb" dtype:"INTEGER"`
-	WriteStart         int    `db:"ws" dtype:"INTEGER"`
-	WriteEnd           int    `db:"we" dtype:"INTEGER"`
-	WriteStallWidth    int    `db:"wsw" dtype:"INTEGER"`
-	WriteStallBuffer   int    `db:"wsb" dtype:"INTEGER"`
-	ID                 int    `db:"id" dtype:"INTEGER" json:"subgroup"`
-	CU                 int    `db:"cu" dtype:"INTEGER" json:"group"`
-	IB                 int    `db:"ib" dtype:"INTEGER"`
-	WF                 int    `db:"wf" dtype:"INTEGER"`
-	WG                 int    `db:"wg" dtype:"INTEGER"`
-	UOP                int    `db:"uop" dtype:"INTEGER"`
-	ExecutionUnit      int    `db:"eu" dtype:"INTEGER"`
-	Assembly           string `db:"asm" dtype:"TEXT" json:"content"`
-	LifeConcise        []Activity
-	LifeVerbose        []Activity
+	Start              int        `db:"st" dtype:"INTEGER" json:"start"`
+	Finish             int        `db:"fn" dtype:"INTEGER" json:"end"`
+	Length             int        `db:"len" dtype:"INTEGER" json:"-"`
+	FetchStart         int        `db:"fs" dtype:"INTEGER" json:"-"`
+	FetchEnd           int        `db:"fe" dtype:"INTEGER" json:"-"`
+	FetchStallWidth    int        `db:"fsw" dtype:"INTEGER" json:"-"`
+	FetchStallBuffer   int        `db:"fsb" dtype:"INTEGER" json:"-"`
+	IssueStart         int        `db:"isu" dtype:"INTEGER" json:"-"`
+	IssueEnd           int        `db:"ie" dtype:"INTEGER" json:"-"`
+	IssueStallMax      int        `db:"ism" dtype:"INTEGER" json:"-"`
+	IssueStallWidth    int        `db:"isw" dtype:"INTEGER" json:"-"`
+	IssueStallBuffer   int        `db:"isb" dtype:"INTEGER" json:"-"`
+	ReadStart          int        `db:"rs" dtype:"INTEGER" json:"-"`
+	ReadEnd            int        `db:"re" dtype:"INTEGER" json:"-"`
+	ReadStallWidth     int        `db:"rsw" dtype:"INTEGER" json:"-"`
+	ReadStallBuffer    int        `db:"rsb" dtype:"INTEGER" json:"-"`
+	DecodeStart        int        `db:"ds" dtype:"INTEGER" json:"-"`
+	DecodeEnd          int        `db:"de" dtype:"INTEGER" json:"-"`
+	DecodeStallWidth   int        `db:"dsw" dtype:"INTEGER" json:"-"`
+	DecodeStallBuffer  int        `db:"dsb" dtype:"INTEGER" json:"-"`
+	ExecuteStart       int        `db:"es" dtype:"INTEGER" json:"-"`
+	ExecuteEnd         int        `db:"ee" dtype:"INTEGER" json:"-"`
+	ExecuteStallWidth  int        `db:"esw" dtype:"INTEGER" json:"-"`
+	ExecuteStallBuffer int        `db:"esb" dtype:"INTEGER" json:"-"`
+	WriteStart         int        `db:"ws" dtype:"INTEGER" json:"-"`
+	WriteEnd           int        `db:"we" dtype:"INTEGER" json:"-"`
+	WriteStallWidth    int        `db:"wsw" dtype:"INTEGER" json:"-"`
+	WriteStallBuffer   int        `db:"wsb" dtype:"INTEGER" json:"-"`
+	ID                 int        `db:"id" dtype:"INTEGER" json:"subgroup"`
+	CU                 int        `db:"cu" dtype:"INTEGER" json:"group"`
+	IB                 int        `db:"ib" dtype:"INTEGER" json:"-"`
+	WF                 int        `db:"wf" dtype:"INTEGER" json:"-"`
+	WG                 int        `db:"wg" dtype:"INTEGER" json:"-"`
+	UOP                int        `db:"uop" dtype:"INTEGER" json:"-"`
+	ExecutionUnit      int        `db:"eu" dtype:"INTEGER" json:"-"`
+	Assembly           string     `db:"asm" dtype:"TEXT" json:"content"`
+	LifeConcise        []Activity `json:"-"`
+	LifeVerbose        []Activity `json:"-"`
 }
 
 func (inst *Instruction) matchCheck(info map[string]string) error {
@@ -218,7 +218,8 @@ func (inst *Instruction) End(cycle int, info map[string]string) error {
 	return nil
 }
 
-func GetInstructionSQLColumnNames(prefix string, suffix string) (str string) {
+// GetInstSQLColNames returns all columns name of the instruction struct
+func GetInstSQLColNames(prefix string, suffix string) (str string) {
 	str = "("
 
 	// Loop through the struct's tags and append to query
@@ -238,11 +239,12 @@ func GetInstructionSQLColumnNames(prefix string, suffix string) (str string) {
 	return str
 }
 
-// GetSQLQueryNewInstTable returns SQL query string to insert an instruction table
+// GetSQLQueryNewInstTable returns SQL query to insert an instruction table
 func GetSQLQueryNewInstTable(tableName string) string {
 	inst := new(Instruction)
 	query := "CREATE TABLE IF NOT EXISTS " + tableName + "("
 	// Loop through the struct's tags and append to query
+
 	val := reflect.ValueOf(inst).Elem()
 	for i := 0; i < val.NumField(); i++ {
 		typeField := val.Type().Field(i)
@@ -275,60 +277,3 @@ func (inst *Instruction) Dump() string {
 	}
 	return infoField + "\n" + infoValue
 }
-
-// // InstructionJSON for representing instruction to timeline
-// type InstructionJSON struct {
-// 	ID            string `json:"id"`
-// 	Group         int    `json:"group"`
-// 	Content       string `json:"content"`
-// 	Start         int    `json:"start"`
-// 	End           int    `json:"end"`
-// 	SubGroup      string `json:"subgroup"`
-// 	SubGroupOrder int    `json:"subgroupOrder"`
-// }
-
-// // GetJSON returns JSON representation of the instruction
-// func (inst *Instruction) GetJSON() []*InstructionJSON {
-// 	// Store return
-// 	var instructionJSONArray []*InstructionJSON
-
-// 	// Common field
-// 	instID := "inst_" + strconv.Itoa(inst.ID) + "_"
-// 	subgroup := instID
-
-// 	cycle := inst.Start
-// 	for index, activity := range inst.LifeConcise {
-// 		id := instID + activity.activity
-// 		group := inst.CU
-// 		content := activity.activity
-// 		activityStart := cycle
-// 		activityEnd := cycle + activity.cycle
-
-// 		instJSON := InstructionJSON{ID: id, Group: group, Content: content,
-// 			Start: activityStart, End: activityEnd, SubGroup: subgroup,
-// 			SubGroupOrder: index}
-// 		instructionJSONArray = append(instructionJSONArray, &instJSON)
-
-// 		cycle = activityEnd
-// 	}
-
-// 	return instructionJSONArray
-// }
-
-// // GetOverviewJSON returns JSON representation of the overview of a instruction
-// func (inst *Instruction) GetOverviewJSON() []*InstructionJSON {
-// 	// Store return
-// 	var instructionJSONArray []*InstructionJSON
-
-// 	id := "inst_" + strconv.Itoa(inst.ID) + "_" + strconv.Itoa(inst.CU)
-// 	group := inst.CU
-// 	subgroup := id
-// 	content := inst.Assembly
-
-// 	instJSON := InstructionJSON{ID: id, Group: group, Content: content,
-// 		Start: inst.Start, End: inst.Start + inst.Length, SubGroup: subgroup}
-// 	instructionJSONArray = append(instructionJSONArray, &instJSON)
-
-// 	return instructionJSONArray
-
-// }

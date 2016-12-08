@@ -52,6 +52,7 @@ func (instPool *InstPool) Process(parseInfo *ParseInfo) (inst *Instruction, err 
 		id := parseInfo.GetID()
 		delete(instPool.Buffer, id)
 
+		// Return a finished instruction
 		return inst, err
 	}
 

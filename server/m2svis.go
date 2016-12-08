@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"text/template"
 
+	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"github.com/xianggong/m2svis/server/modules/trace"
 )
@@ -34,19 +35,29 @@ func Timeline(w http.ResponseWriter, r *http.Request) {
 // TimelineJSON to return timeline json data
 func TimelineJSON(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
+
 	// start := r.Form["start"]
 	// end := r.Form["end"]
+	db := r.Form["db"]
+
 	w.Header().Set("Content-Type", "application/json")
 
-	trace := new(trace.Trace)
-	trace.Process("modules/trace/test.gz")
-
-	enc, _ := json.Marshal(trace.GetJSON())
+	trace := trace.GetInstance()
+	data, err := trace.GetInstsInDB(db[0], "")
+	if err != nil {
+		glog.Error(err)
+		return
+	}
+	enc, _ := json.Marshal(data)
 
 	w.Write(enc)
 }
 
 func main() {
+	// Create trace module
+	trace := trace.GetInstance()
+	trace.Init("./m2svis.toml")
+
 	// Create router to redirect requests to handlers
 	router := mux.NewRouter()
 
