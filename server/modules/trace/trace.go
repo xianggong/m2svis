@@ -146,6 +146,18 @@ func (trace *Trace) NewTraceInDB(path string) {
 
 }
 
+// GetDatabase query and return database
+func (trace *Trace) GetDatabase(dbName string) *sqlx.Rows {
+	query := "SHOW DATABASES LIKE '" + dbName + "'"
+	rows, err := trace.Database.Queryx(query)
+	if err != nil {
+		glog.Warning(err)
+		return nil
+	}
+	return rows
+
+}
+
 // GetInstsInDB returns instructions from database
 func (trace *Trace) GetInstsInDB(dbName, filter string) (inst []Instruction, err error) {
 	insts := []Instruction{}

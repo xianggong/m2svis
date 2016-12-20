@@ -1,0 +1,6 @@
+div.vis-item.vis-range.vis-readonly, 
+div.vis-item.vis-range.vis-readonly.vis-selected {
+    background-color: darkslategray;
+    border-color: gray;
+    color: white;
+}

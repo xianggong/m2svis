@@ -9,6 +9,14 @@ import (
 	"strings"
 )
 
+var instGUID = 0
+
+func getGUID() int {
+	guid := instGUID
+	instGUID++
+	return guid
+}
+
 // Activity of an instruction
 type Activity struct {
 	cycle    int
@@ -17,44 +25,45 @@ type Activity struct {
 
 // Instruction contains statistics of an instruction
 type Instruction struct {
-	Start              int        `db:"st" dtype:"INTEGER" json:"start"`
-	Finish             int        `db:"fn" dtype:"INTEGER" json:"end"`
-	Length             int        `db:"len" dtype:"INTEGER" json:"-"`
-	FetchStart         int        `db:"fs" dtype:"INTEGER" json:"-"`
-	FetchEnd           int        `db:"fe" dtype:"INTEGER" json:"-"`
-	FetchStallWidth    int        `db:"fsw" dtype:"INTEGER" json:"-"`
-	FetchStallBuffer   int        `db:"fsb" dtype:"INTEGER" json:"-"`
-	IssueStart         int        `db:"isu" dtype:"INTEGER" json:"-"`
-	IssueEnd           int        `db:"ie" dtype:"INTEGER" json:"-"`
-	IssueStallMax      int        `db:"ism" dtype:"INTEGER" json:"-"`
-	IssueStallWidth    int        `db:"isw" dtype:"INTEGER" json:"-"`
-	IssueStallBuffer   int        `db:"isb" dtype:"INTEGER" json:"-"`
-	ReadStart          int        `db:"rs" dtype:"INTEGER" json:"-"`
-	ReadEnd            int        `db:"re" dtype:"INTEGER" json:"-"`
-	ReadStallWidth     int        `db:"rsw" dtype:"INTEGER" json:"-"`
-	ReadStallBuffer    int        `db:"rsb" dtype:"INTEGER" json:"-"`
-	DecodeStart        int        `db:"ds" dtype:"INTEGER" json:"-"`
-	DecodeEnd          int        `db:"de" dtype:"INTEGER" json:"-"`
-	DecodeStallWidth   int        `db:"dsw" dtype:"INTEGER" json:"-"`
-	DecodeStallBuffer  int        `db:"dsb" dtype:"INTEGER" json:"-"`
-	ExecuteStart       int        `db:"es" dtype:"INTEGER" json:"-"`
-	ExecuteEnd         int        `db:"ee" dtype:"INTEGER" json:"-"`
-	ExecuteStallWidth  int        `db:"esw" dtype:"INTEGER" json:"-"`
-	ExecuteStallBuffer int        `db:"esb" dtype:"INTEGER" json:"-"`
-	WriteStart         int        `db:"ws" dtype:"INTEGER" json:"-"`
-	WriteEnd           int        `db:"we" dtype:"INTEGER" json:"-"`
-	WriteStallWidth    int        `db:"wsw" dtype:"INTEGER" json:"-"`
-	WriteStallBuffer   int        `db:"wsb" dtype:"INTEGER" json:"-"`
-	ID                 int        `db:"id" dtype:"INTEGER" json:"subgroup"`
-	CU                 int        `db:"cu" dtype:"INTEGER" json:"group"`
-	IB                 int        `db:"ib" dtype:"INTEGER" json:"-"`
-	WF                 int        `db:"wf" dtype:"INTEGER" json:"-"`
-	WG                 int        `db:"wg" dtype:"INTEGER" json:"-"`
-	UOP                int        `db:"uop" dtype:"INTEGER" json:"-"`
-	ExecutionUnit      int        `db:"eu" dtype:"INTEGER" json:"-"`
-	Assembly           string     `db:"asm" dtype:"TEXT" json:"content"`
-	LifeConcise        []Activity `json:"-"`
-	LifeVerbose        []Activity `json:"-"`
+	Start              int    `db:"st" dtype:"INTEGER" json:"start"`
+	Finish             int    `db:"fn" dtype:"INTEGER" json:"end"`
+	Length             int    `db:"len" dtype:"INTEGER" json:"-"`
+	FetchStart         int    `db:"fs" dtype:"INTEGER" json:"-"`
+	FetchEnd           int    `db:"fe" dtype:"INTEGER" json:"-"`
+	FetchStallWidth    int    `db:"fsw" dtype:"INTEGER" json:"-"`
+	FetchStallBuffer   int    `db:"fsb" dtype:"INTEGER" json:"-"`
+	IssueStart         int    `db:"isu" dtype:"INTEGER" json:"-"`
+	IssueEnd           int    `db:"ie" dtype:"INTEGER" json:"-"`
+	IssueStallMax      int    `db:"ism" dtype:"INTEGER" json:"-"`
+	IssueStallWidth    int    `db:"isw" dtype:"INTEGER" json:"-"`
+	IssueStallBuffer   int    `db:"isb" dtype:"INTEGER" json:"-"`
+	ReadStart          int    `db:"rs" dtype:"INTEGER" json:"-"`
+	ReadEnd            int    `db:"re" dtype:"INTEGER" json:"-"`
+	ReadStallWidth     int    `db:"rsw" dtype:"INTEGER" json:"-"`
+	ReadStallBuffer    int    `db:"rsb" dtype:"INTEGER" json:"-"`
+	DecodeStart        int    `db:"ds" dtype:"INTEGER" json:"-"`
+	DecodeEnd          int    `db:"de" dtype:"INTEGER" json:"-"`
+	DecodeStallWidth   int    `db:"dsw" dtype:"INTEGER" json:"-"`
+	DecodeStallBuffer  int    `db:"dsb" dtype:"INTEGER" json:"-"`
+	ExecuteStart       int    `db:"es" dtype:"INTEGER" json:"-"`
+	ExecuteEnd         int    `db:"ee" dtype:"INTEGER" json:"-"`
+	ExecuteStallWidth  int    `db:"esw" dtype:"INTEGER" json:"-"`
+	ExecuteStallBuffer int    `db:"esb" dtype:"INTEGER" json:"-"`
+	WriteStart         int    `db:"ws" dtype:"INTEGER" json:"-"`
+	WriteEnd           int    `db:"we" dtype:"INTEGER" json:"-"`
+	WriteStallWidth    int    `db:"wsw" dtype:"INTEGER" json:"-"`
+	WriteStallBuffer   int    `db:"wsb" dtype:"INTEGER" json:"-"`
+	GUID               int    `db:"guid" dtype:"INTEGER" json:"subgroupOrder"`
+	ID                 int    `db:"id" dtype:"INTEGER" json:"subgroup"`
+	CU                 int    `db:"cu" dtype:"INTEGER" json:"group"`
+	IB                 int    `db:"ib" dtype:"INTEGER" json:"-"`
+	WF                 int    `db:"wf" dtype:"INTEGER" json:"-"`
+	WG                 int    `db:"wg" dtype:"INTEGER" json:"-"`
+	UOP                int    `db:"uop" dtype:"INTEGER" json:"-"`
+	ExecutionUnit      int    `db:"eu" dtype:"INTEGER" json:"-"`
+	Assembly           string `db:"asm" dtype:"TEXT" json:"content"`
+	LifeConcise        []Activity
+	LifeVerbose        []Activity
 }
 
 func (inst *Instruction) matchCheck(info map[string]string) error {
@@ -76,13 +85,14 @@ func (inst *Instruction) New(cycle int, info map[string]string) error {
 	// Record statistics
 	inst.Start = cycle
 	inst.FetchStart = cycle
+	inst.GUID = getGUID()
 	inst.ID, _ = strconv.Atoi(info["id"])
 	inst.CU, _ = strconv.Atoi(info["cu"])
 	inst.IB, _ = strconv.Atoi(info["ib"])
 	inst.WF, _ = strconv.Atoi(info["wf"])
 	inst.WG, _ = strconv.Atoi(info["wg"])
 	inst.UOP, _ = strconv.Atoi(info["uop_id"])
-	inst.Assembly = info["asm"]
+	inst.Assembly = "[" + info["wg"] + "-" + info["wf"] + "]: " + info["asm"]
 	inst.LifeVerbose = append(inst.LifeVerbose, Activity{cycle, info["stg"]})
 	inst.LifeConcise = append(inst.LifeConcise, Activity{0, info["stg"]})
 
@@ -250,7 +260,11 @@ func GetSQLQueryNewInstTable(tableName string) string {
 		typeField := val.Type().Field(i)
 		tag := typeField.Tag
 		if tag != "" {
-			query += tag.Get("db") + " " + tag.Get("dtype") + ", "
+			dbColName := tag.Get("db")
+			dbColType := tag.Get("dtype")
+			if dbColName != "-" && dbColType != "-" {
+				query += dbColName + " " + dbColType + ", "
+			}
 		}
 	}
 	query = strings.TrimSuffix(query, ", ")
