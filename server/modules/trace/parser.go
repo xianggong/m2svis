@@ -62,7 +62,6 @@ func (parser *Parser) Parse(input string) (pr ParseInfo, err error) {
 	// Get pattern in the regex table
 	pattern := parserRegexTable[key]
 	if pattern == "" {
-		// log.Printf("No pattern to match: %s", input)
 		return ParseInfo{}, errors.New("No Pattern")
 	}
 

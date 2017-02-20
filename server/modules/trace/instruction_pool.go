@@ -1,21 +1,23 @@
 package trace
 
-// InstPool contains instruction objects
+import "github.com/xianggong/m2svis/server/modules/instruction"
+
+// InstPool contains instruction.Instruction objects
 type InstPool struct {
-	Buffer map[string]*Instruction
+	Buffer map[string]*instruction.Instruction
 }
 
-func (instPool *InstPool) getInst(parseInfo *ParseInfo) *Instruction {
+func (instPool *InstPool) getInst(parseInfo *ParseInfo) *instruction.Instruction {
 	id := parseInfo.GetID()
 	return instPool.Buffer[id]
 }
 
-// Process information from parser and process the data, return an instruction
+// Process information from parser and process the data, return an instruction.Instruction
 // if it completes all the pipeline stages
-func (instPool *InstPool) Process(parseInfo *ParseInfo) (inst *Instruction, err error) {
+func (instPool *InstPool) Process(parseInfo *ParseInfo) (inst *instruction.Instruction, err error) {
 	// Init insturction buffer if neccesary
 	if instPool.Buffer == nil {
-		instPool.Buffer = make(map[string]*Instruction)
+		instPool.Buffer = make(map[string]*instruction.Instruction)
 	}
 
 	// Get cycle and field information
@@ -24,8 +26,8 @@ func (instPool *InstPool) Process(parseInfo *ParseInfo) (inst *Instruction, err 
 
 	switch parseInfo.key {
 	case "si.new_inst":
-		// Create new instruction object
-		inst := &Instruction{}
+		// Create new instruction.Instruction object
+		inst := &instruction.Instruction{}
 
 		// Update
 		err = inst.New(cycle, field)
@@ -35,14 +37,14 @@ func (instPool *InstPool) Process(parseInfo *ParseInfo) (inst *Instruction, err 
 		instPool.Buffer[id] = inst
 
 	case "si.inst":
-		// Get instruction object
+		// Get instruction.Instruction object
 		inst := instPool.getInst(parseInfo)
 
 		// Update
 		err = inst.Exe(cycle, field)
 
 	case "si.end_inst":
-		// Get instruction object
+		// Get instruction.Instruction object
 		inst := instPool.getInst(parseInfo)
 
 		// Update
@@ -52,7 +54,7 @@ func (instPool *InstPool) Process(parseInfo *ParseInfo) (inst *Instruction, err 
 		id := parseInfo.GetID()
 		delete(instPool.Buffer, id)
 
-		// Return a finished instruction
+		// Return a finished instruction.Instruction
 		return inst, err
 	}
 
