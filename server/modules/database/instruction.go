@@ -2,15 +2,20 @@ package database
 
 import "time"
 
-// TraceJSON contains all traces information in database
-type TraceJSON struct {
+// TraceAll contains all traces information in database
+type TraceAll struct {
 	Name  string    `db:"table_name" json:"table_name"`
 	Size  int       `db:"table_rows" json:"table_rows"`
 	Stamp time.Time `db:"create_time" json:"create_time"`
 }
 
-// InstJSON contains all information of an instruction in database
-type InstJSON struct {
+// TraceCount contains count information of a trace
+type TraceCount struct {
+	Count int `db:"count(*)" json:"count"`
+}
+
+// TraceData contains all information of an instruction in database
+type TraceData struct {
 	Start              int    `db:"st"   json:"Start"`
 	Finish             int    `db:"fn"   json:"Finish"`
 	Length             int    `db:"len"  json:"Len"`
@@ -47,7 +52,7 @@ type InstJSON struct {
 	WG                 int    `db:"wg"   json:"WG"`
 	UOP                int    `db:"uop"  json:"UOP"`
 	ExecutionUnit      int    `db:"eu"   json:"EU"`
-	Assembly           string `db:"asm"  json:"Assembly format: [WG-WF] GCN_1_0_INSTRUCTION"`
+	Assembly           string `db:"asm"  json:"Asm"`
 }
 
 // InstTimelineJSON contains instruction timeline information

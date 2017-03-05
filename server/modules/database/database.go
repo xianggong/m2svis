@@ -2,6 +2,7 @@ package database
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"sync"
 
@@ -58,7 +59,7 @@ func isDatabaseExist(dbName string) (isExist bool) {
 		return false
 	}
 
-	// Error means does not exists
+	// No row means does not exists
 	if !rows.Next() {
 		return false
 	}
@@ -93,9 +94,9 @@ func isTableExist(dbName, tbName string) (err error) {
 	return nil
 }
 
-// GetInstTable returns instruction table from database
-func GetInstTable(traceName string, filter string) (inst []InstJSON, err error) {
-	insts := []InstJSON{}
+// GetTraceData returns instruction table from database
+func GetTraceData(traceName string, filter string) (out []TraceData, err error) {
+	insts := []TraceData{}
 
 	if isDatabaseExist("m2svis") {
 		query := "USE m2svis"
@@ -116,15 +117,24 @@ func GetInstTable(traceName string, filter string) (inst []InstJSON, err error) 
 	return insts, err
 }
 
-func checkThenUse() {
-	isDatabaseExist("m2svis")
-	GetInstance().MustExec("Use m2svis")
+// GetTraceCount returns metadata of a trace, such as # of instructions
+func GetTraceCount(traceName string, filter string) (out TraceCount, err error) {
+	GetInstance().MustExec("USE m2svis")
+	traceCount := TraceCount{}
+	query := fmt.Sprintf("SELECT count(*) from %s %s", traceName, filter)
+	err = GetInstance().Get(&traceCount, query)
+	if err != nil {
+		glog.Warning(err)
+		return traceCount, err
+	}
+
+	return traceCount, err
 }
 
-// GetTraces returns all traces information
-func GetTraces() (Traces []TraceJSON, err error) {
-	checkThenUse()
-	data := []TraceJSON{}
+// GetTraceAll returns all traces information
+func GetTraceAll() (tracesAll []TraceAll, err error) {
+	GetInstance().MustExec("USE m2svis")
+	data := []TraceAll{}
 	query := "select table_name,table_rows,create_time from information_schema.Tables where table_schema='m2svis';"
 	err = GetInstance().Select(&data, query)
 
