@@ -2,8 +2,6 @@ package database
 
 import (
 	"errors"
-	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/golang/glog"
@@ -92,51 +90,4 @@ func isTableExist(dbName, tbName string) (err error) {
 
 	// No error
 	return nil
-}
-
-// GetTraceData returns instruction table from database
-func GetTraceData(traceName string, filter string) (out []TraceData, err error) {
-	insts := []TraceData{}
-
-	if isDatabaseExist("m2svis") {
-		query := "USE m2svis"
-		GetInstance().MustExec(query)
-
-		// Get instructions
-		query = strings.Join([]string{"SELECT * from", traceName, filter}, " ")
-		err = GetInstance().Select(&insts, query)
-		if err != nil {
-			glog.Warning(err)
-			return nil, err
-		}
-	} else {
-		return nil, err
-	}
-
-	// Return
-	return insts, err
-}
-
-// GetTraceCount returns metadata of a trace, such as # of instructions
-func GetTraceCount(traceName string, filter string) (out TraceCount, err error) {
-	GetInstance().MustExec("USE m2svis")
-	traceCount := TraceCount{}
-	query := fmt.Sprintf("SELECT count(*) from %s %s", traceName, filter)
-	err = GetInstance().Get(&traceCount, query)
-	if err != nil {
-		glog.Warning(err)
-		return traceCount, err
-	}
-
-	return traceCount, err
-}
-
-// GetTraceAll returns all traces information
-func GetTraceAll() (tracesAll []TraceAll, err error) {
-	GetInstance().MustExec("USE m2svis")
-	data := []TraceAll{}
-	query := "select table_name,table_rows,create_time from information_schema.Tables where table_schema='m2svis';"
-	err = GetInstance().Select(&data, query)
-
-	return data, err
 }
