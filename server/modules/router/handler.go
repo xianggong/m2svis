@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"html/template"
 	"net/http"
+	"strconv"
 
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
@@ -24,25 +25,25 @@ func index(w http.ResponseWriter, r *http.Request) {
 }
 
 func traceAll(w http.ResponseWriter, r *http.Request) {
-	traces, err := database.GetTraceAll()
+	data, err := database.GetAllTraceInfo()
 	if err != nil {
 		glog.Error(err)
 		return
 	}
 
-	enc, _ := json.Marshal(traces)
+	enc, _ := json.Marshal(data)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(enc)
 }
 
-func traceData(w http.ResponseWriter, r *http.Request) {
+func rawdata(w http.ResponseWriter, r *http.Request) {
 	// Name and filter
 	vars := mux.Vars(r)
 	traceName := vars["traceName"]
-	filterQuery := formToSQL(r)
+	filterQuery := rawDataFormToSQL(r)
 
 	// Query database
-	data, err := database.GetTraceData(traceName, filterQuery)
+	data, err := database.GetTraceRawdata(traceName, filterQuery)
 	if err != nil {
 		glog.Error(err)
 		return
@@ -54,7 +55,7 @@ func traceData(w http.ResponseWriter, r *http.Request) {
 	w.Write(enc)
 }
 
-func traceCount(w http.ResponseWriter, r *http.Request) {
+func count(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	traceName := vars["traceName"]
 	filterQuery := formFiltersToSQL(r)
@@ -71,7 +72,7 @@ func traceCount(w http.ResponseWriter, r *http.Request) {
 	w.Write(enc)
 }
 
-func traceMeta(w http.ResponseWriter, r *http.Request) {
+func meta(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	traceName := vars["traceName"]
 
@@ -87,7 +88,7 @@ func traceMeta(w http.ResponseWriter, r *http.Request) {
 	w.Write(enc)
 }
 
-func traceStall(w http.ResponseWriter, r *http.Request) {
+func statsStall(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	traceName := vars["traceName"]
 
@@ -103,7 +104,7 @@ func traceStall(w http.ResponseWriter, r *http.Request) {
 	w.Write(enc)
 }
 
-func traceStallRow(w http.ResponseWriter, r *http.Request) {
+func statsStallRow(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	traceName := vars["traceName"]
 
@@ -119,7 +120,7 @@ func traceStallRow(w http.ResponseWriter, r *http.Request) {
 	w.Write(enc)
 }
 
-func traceStallColumn(w http.ResponseWriter, r *http.Request) {
+func statsStallColumn(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	traceName := vars["traceName"]
 
@@ -135,11 +136,19 @@ func traceStallColumn(w http.ResponseWriter, r *http.Request) {
 	w.Write(enc)
 }
 
+// CUActiveInsts returns active instructions
 func CUActiveInsts(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	traceName := vars["traceName"]
 
-	activeInsts, err := database.GetTraceActiveCount(traceName, 0, 0, 10000, 0)
+	r.ParseForm()
+
+	start, _ := strconv.Atoi(r.Form.Get("start"))
+	finish, _ := strconv.Atoi(r.Form.Get("finish"))
+	cu, _ := strconv.Atoi(r.Form.Get("cu"))
+	windowSize, _ := strconv.Atoi(r.Form.Get("windowSize"))
+
+	activeInsts, err := database.GetTraceActiveCount(traceName, cu, start, finish, windowSize)
 	if err != nil {
 		glog.Error(err)
 		return
@@ -147,6 +156,30 @@ func CUActiveInsts(w http.ResponseWriter, r *http.Request) {
 
 	// Encode to JSON and write
 	enc, _ := json.Marshal(activeInsts)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(enc)
+}
+
+func instCountByInstType(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	traceName := vars["traceName"]
+
+	data := database.GetInstCountByInstType(traceName)
+
+	// Encode to JSON and write
+	enc, _ := json.Marshal(data)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(enc)
+}
+
+func instCountByExecUnit(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	traceName := vars["traceName"]
+
+	data := database.GetInstCountByExecUnit(traceName)
+
+	// Encode to JSON and write
+	enc, _ := json.Marshal(data)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(enc)
 }

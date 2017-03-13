@@ -11,7 +11,7 @@ func formFiltersToSQL(r *http.Request) string {
 	return r.Form.Get("filters")
 }
 
-func formToSQL(r *http.Request) string {
+func rawDataFormToSQL(r *http.Request) string {
 	query := ""
 	r.ParseForm()
 
