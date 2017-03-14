@@ -112,6 +112,7 @@ func GetTraceStallColumn(traceName, filter string) (TraceStallColumn, error) {
 // GetTraceActiveCount returns count of active instructions
 func GetTraceActiveCount(traceName string, cuid, start, finish, windowSize int) (ActiveInsts, error) {
 	useDB()
+
 	st := start
 	fn := finish
 	meta, _ := GetTraceMeta(traceName, "")
@@ -212,6 +213,8 @@ func GetInstCountByExecUnit(tracename string) map[string]int {
 
 // GetCycleCountByInstType returns number of instructions on each execution unit
 func GetCycleCountByInstType(tracename string) map[string]int {
+	useDB()
+
 	queryMap := map[string]string{
 		"SOP2":  `SELECT COALESCE(SUM(len), 0) FROM %s WHERE type="SOP2"`,
 		"SOPK":  `SELECT COALESCE(SUM(len), 0) FROM %s WHERE type="SOPK"`,
