@@ -9,7 +9,6 @@ import (
 
 // GetTraceCount returns metadata of a trace, such as # of instructions
 func GetTraceCount(traceName string, filter string) (out TraceCount, err error) {
-	useDB()
 	traceCount := TraceCount{}
 	query := fmt.Sprintf("SELECT count(*) AS CountInsts from %s %s", traceName, filter)
 	err = GetInstance().Get(&traceCount, query)
@@ -22,7 +21,6 @@ func GetTraceCount(traceName string, filter string) (out TraceCount, err error) 
 
 // GetTraceMeta returns metadata of a trace
 func GetTraceMeta(traceName, filter string) (out TraceMeta, err error) {
-	useDB()
 	traceCount := TraceMeta{}
 	query := fmt.Sprintf("SELECT count(*) as CountInsts, min(st) as MinCycle, max(fn) as MaxCycle, sum(fsw+fsb+ism+isw+isb+dsw+dsb+rsw+rsb+esw+esb+wsw+wsb) as CountStall, count(distinct wf) as CountWF, count(distinct wg) as CountWG, count(distinct cu) as CountCU from %s %s", traceName, filter)
 	err = GetInstance().Get(&traceCount, query)
@@ -35,7 +33,6 @@ func GetTraceMeta(traceName, filter string) (out TraceMeta, err error) {
 
 // GetTraceStall returns stall information
 func GetTraceStall(traceName, filter string) (out TraceStall, err error) {
-	useDB()
 	traceStall := TraceStall{}
 	query := fmt.Sprintf("SELECT sum(fsw+fsb+ism+isw+isb+dsw+dsb+rsw+rsb+esw+esb+wsw+wsb) as StallTotal, sum(fsw+fsb) as StallFrontend, sum(ism+isw+isb) as StallIssue, sum(dsw+dsb) as StallDecode, sum(rsw+rsb) as StallRead, sum(esw+esb) as StallExecute, sum(wsw+wsb) as StallWrite from %s %s", traceName, filter)
 	err = GetInstance().Get(&traceStall, query)
@@ -48,7 +45,6 @@ func GetTraceStall(traceName, filter string) (out TraceStall, err error) {
 
 // GetTraceNumCU returns number of compute unit
 func GetTraceNumCU(traceName string) int {
-	useDB()
 	numCU := 0
 	queryCountCU := fmt.Sprintf("select count(distinct cu) from %s", traceName)
 	GetInstance().Get(&numCU, queryCountCU)
@@ -58,7 +54,6 @@ func GetTraceNumCU(traceName string) int {
 // GetTraceStallRow returns stall information row by row
 func GetTraceStallRow(traceName, filter string) ([]TraceStall, error) {
 	numCU := GetTraceNumCU(traceName)
-	useDB()
 	queryStall := []string{}
 	for i := 0; i < numCU; i++ {
 		queryStall = append(queryStall, fmt.Sprintf("select sum(fsw+fsb+ism+isw+isb+dsw+dsb+rsw+rsb+esw+esb+wsw+wsb) as StallTotal, sum(fsw+fsb) as StallFrontend, sum(ism+isw+isb) as StallIssue, sum(dsw+dsb) as StallDecode, sum(rsw+rsb) as StallRead, sum(esw+esb) as StallExecute, sum(wsw+wsb) as StallWrite from %s where cu = %d", traceName, i))
@@ -73,8 +68,6 @@ func GetTraceStallRow(traceName, filter string) ([]TraceStall, error) {
 
 // GetTraceStallColumn returns stall information column by column
 func GetTraceStallColumn(traceName, filter string) (TraceStallColumn, error) {
-	useDB()
-
 	countCU := GetTraceNumCU(traceName)
 
 	queryStallFrontend := []string{}
@@ -111,8 +104,6 @@ func GetTraceStallColumn(traceName, filter string) (TraceStallColumn, error) {
 
 // GetTraceActiveCount returns count of active instructions
 func GetTraceActiveCount(traceName string, cuid, start, finish, windowSize int) (ActiveInsts, error) {
-	useDB()
-
 	st := start
 	fn := finish
 	meta, _ := GetTraceMeta(traceName, "")
@@ -149,8 +140,6 @@ func GetTraceActiveCount(traceName string, cuid, start, finish, windowSize int) 
 
 // GetInstCountByInstType returns number of instructions of each type
 func GetInstCountByInstType(tracename string) map[string]int {
-	useDB()
-
 	queryMap := map[string]string{
 		"SOP2":  `SELECT COUNT(*) FROM %s WHERE type="SOP2"`,
 		"SOPK":  `SELECT COUNT(*) FROM %s WHERE type="SOPK"`,
@@ -186,8 +175,6 @@ func GetInstCountByInstType(tracename string) map[string]int {
 
 // GetInstCountByExecUnit returns number of instructions on each execution unit
 func GetInstCountByExecUnit(tracename string) map[string]int {
-	useDB()
-
 	queryMap := map[string]string{
 		"Branch":       `SELECT COUNT(*) FROM %s WHERE eu="Branch"`,
 		"LDS":          `SELECT COUNT(*) FROM %s WHERE eu="LDS"`,
@@ -213,8 +200,6 @@ func GetInstCountByExecUnit(tracename string) map[string]int {
 
 // GetCycleCountByInstType returns number of instructions on each execution unit
 func GetCycleCountByInstType(tracename string) map[string]int {
-	useDB()
-
 	queryMap := map[string]string{
 		"SOP2":  `SELECT COALESCE(SUM(len), 0) FROM %s WHERE type="SOP2"`,
 		"SOPK":  `SELECT COALESCE(SUM(len), 0) FROM %s WHERE type="SOPK"`,
@@ -250,8 +235,6 @@ func GetCycleCountByInstType(tracename string) map[string]int {
 
 // GetCycleCountByExecUnit returns number of instructions on each execution unit
 func GetCycleCountByExecUnit(tracename string) map[string]int {
-	useDB()
-
 	queryMap := map[string]string{
 		"Branch":       `SELECT COALESCE(SUM(len), 0) FROM %s WHERE eu="Branch"`,
 		"LDS":          `SELECT COALESCE(SUM(len), 0) FROM %s WHERE eu="LDS"`,
@@ -277,8 +260,6 @@ func GetCycleCountByExecUnit(tracename string) map[string]int {
 }
 
 func GetCycleCountByCU(tracename string) map[int]int {
-	useDB()
-
 	cycleCountByCU := map[int]int{}
 	countCU := GetTraceNumCU(tracename)
 	for cuid := 0; cuid < countCU; cuid++ {

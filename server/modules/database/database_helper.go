@@ -53,7 +53,3 @@ func isTableExist(dbName, tbName string) (err error) {
 	// No error
 	return nil
 }
-
-func useDB() {
-	GetInstance().MustExec(" USE " + dbName)
-}

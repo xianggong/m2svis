@@ -2,6 +2,7 @@
     "container": "m2svis",
     "username": "m2svis",
     "password": "m2svis",
+    "database": "m2svis",
     "protocol" : "tcp",
     "address": "127.0.0.1",
     "port": "3306"

@@ -8,8 +8,6 @@ import (
 
 // GetTraceRawdata returns instruction table from database
 func GetTraceRawdata(traceName string, filter string) (out []TraceRawdata, err error) {
-	useDB()
-
 	insts := []TraceRawdata{}
 
 	query := strings.Join([]string{"SELECT * from", traceName, filter}, " ")

@@ -12,6 +12,7 @@ type config struct {
 	Container string `json:"container"`
 	Username  string `json:"username"`
 	Password  string `json:"password"`
+	Database  string `json:"database"`
 	Protocol  string `json:"protocol"`
 	Address   string `json:"address"`
 	Port      string `json:"port"`
@@ -39,7 +40,8 @@ func (conf *config) read(path string) error {
 func (conf *config) getDSN() string {
 	dsn := conf.Username + ":" + conf.Password + "@"
 	dsn += conf.Protocol + "(" + conf.Address + ":" + conf.Port + ")"
-	dsn += "/?parseTime=true"
+	dsn += "/" + conf.Database
+	dsn += "?parseTime=true"
 
 	return dsn
 }
