@@ -103,12 +103,12 @@ func GetTraceStallColumn(traceName, filter string) (TraceStallColumn, error) {
 }
 
 // GetTraceActiveCount returns count of active instructions
-func GetTraceActiveCount(traceName string, cuid, start, finish, windowSize int) (ActiveInsts, error) {
+func GetTraceActiveCount(traceName string, cuid, start, finish, windowSize int) (map[string][]int, error) {
 	st := start
 	fn := finish
 	meta, _ := GetTraceMeta(traceName, "")
 	if start > meta.MaxCycle {
-		return ActiveInsts{}, nil
+		return make(map[string][]int), nil
 	}
 	if finish > meta.MaxCycle {
 		fn = meta.MaxCycle
@@ -119,23 +119,43 @@ func GetTraceActiveCount(traceName string, cuid, start, finish, windowSize int) 
 		step = windowSize
 	}
 
-	var activeInsts ActiveInsts
-	for i := st; i < fn; i += step {
-		count := 0
-		queryActive := fmt.Sprintf("SELECT COUNT(*) AS CountActiveInstructions FROM %s WHERE st <= %d AND fn >= %d", traceName, i+st+windowSize, i+st)
-		if cuid != -1 {
-			queryActive += fmt.Sprintf(" AND cu = %d ", cuid)
-		}
-		err := GetInstance().Get(&count, queryActive)
-		if err != nil {
-			glog.Error(err)
-		} else {
-			activeInsts.Count = append(activeInsts.Count, count)
-			activeInsts.Cycle = append(activeInsts.Cycle, i)
-		}
+	queryMap := map[string]string{
+		"Branch":       `SELECT COUNT(*) FROM %s WHERE st <= %d AND fn >= %d AND eu = "Branch" `,
+		"LDS":          `SELECT COUNT(*) FROM %s WHERE st <= %d AND fn >= %d AND eu = "LDS" `,
+		"VectorMemory": `SELECT COUNT(*) FROM %s WHERE st <= %d AND fn >= %d AND eu = "VectorMemory" `,
+		"Scalar":       `SELECT COUNT(*) FROM %s WHERE st <= %d AND fn >= %d AND eu = "Scalar" `,
+		"SIMD":         `SELECT COUNT(*) FROM %s WHERE st <= %d AND fn >= %d AND eu = "SIMD" `,
 	}
 
-	return activeInsts, nil
+	activeInstsMap := make(map[string][]int)
+
+	// Cycle information
+	activeCycle := []int{}
+	for i := st; i <= fn; i += step {
+		activeCycle = append(activeCycle, i)
+	}
+	activeInstsMap["Cycle"] = activeCycle
+
+	// Count information
+	for key, value := range queryMap {
+		activeInsts := []int{}
+		for i := 0; i <= fn-st; i += step {
+			count := 0
+			query := fmt.Sprintf(value, traceName, i+st+windowSize, i+st)
+			if cuid != -1 {
+				query += fmt.Sprintf(" AND cu = %d ", cuid)
+			}
+			err := GetInstance().Get(&count, query)
+			if err != nil {
+				glog.Error(err)
+			} else {
+				activeInsts = append(activeInsts, count)
+			}
+		}
+		activeInstsMap[key] = activeInsts
+	}
+
+	return activeInstsMap, nil
 }
 
 // GetInstCountByInstType returns number of instructions of each type
