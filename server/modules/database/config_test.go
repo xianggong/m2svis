@@ -25,5 +25,5 @@ func TestGetDSN(t *testing.T) {
 	conf.read("../../config.json")
 	dsn := conf.getDSN()
 
-	assert.Equal("m2svis:m2svis@tcp(127.0.0.1:3306)/m2svis?parseTime=true", dsn)
+	assert.Equal("m2svis:m2svis@tcp(127.0.0.1:3306)/m2svis?parseTime=true&allowAllFiles=true", dsn)
 }

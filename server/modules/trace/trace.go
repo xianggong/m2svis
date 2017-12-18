@@ -35,8 +35,7 @@ func Init() {
 	GetInstance()
 }
 
-// Process trace file
-func Process(path string) (err error) {
+func ProcessGzip(path string) (err error) {
 	// Open trace file
 	file, err := os.Open(path)
 	if err != nil {
@@ -104,4 +103,42 @@ func Process(path string) (err error) {
 
 	// Return
 	return nil
+}
+
+// ProcessCSV
+func ProcessCSV(path string) (err error) {
+	// Use m2svis database
+	db := database.GetInstance()
+	db.MustExec("USE m2svis")
+
+	// Create an instruction table in 'm2svis' database for the incoming trace
+	traceName := strings.TrimSuffix(filepath.Base(path), ".vis")
+	query := instruction.GetQueryCreateInstTableCSV(traceName)
+	db.MustExec(query)
+
+	// Load data from file to database
+	absPath, _ := filepath.Abs(path)
+	query = `LOAD DATA LOCAL INFILE "` + absPath + `" INTO TABLE ` + traceName
+	query += ` COLUMNS TERMINATED BY '|' `
+	query += ` OPTIONALLY ENCLOSED BY '"' `
+	query += ` ESCAPED BY '"' `
+	query += ` LINES TERMINATED BY '\n'; `
+	db.MustExec(query)
+
+	return nil
+}
+
+// Process trace file
+func Process(path string) (err error) {
+	fileExtension := filepath.Ext(path)
+	switch fileExtension {
+	case ".gz":
+		err = ProcessGzip(path)
+	case ".vis":
+		err = ProcessCSV(path)
+	default:
+		glog.Errorf("%s extension is not supported\n", fileExtension)
+	}
+
+	return err
 }

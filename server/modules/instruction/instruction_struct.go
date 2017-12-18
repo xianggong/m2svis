@@ -49,3 +49,43 @@ type Instruction struct {
 	LifeConcise        []Activity
 	LifeVerbose        []Activity
 }
+
+type InstructionCSV struct {
+	Start         int    `db:"Start"         dtype:"INTEGER" json:"Start"`
+	Finish        int    `db:"Finish"        dtype:"INTEGER" json:"Finish"`
+	Length        int    `db:"Length"        dtype:"INTEGER" json:"Length"`
+	FetchBegin    int    `db:"FetchBegin"    dtype:"INTEGER" json:"FetchBegin"`
+	FetchStall    int    `db:"FetchStall"    dtype:"INTEGER" json:"FetchStall"`
+	FetchActive   int    `db:"FetchActive"   dtype:"INTEGER" json:"FetchActive"`
+	FetchEnd      int    `db:"FetchEnd"      dtype:"INTEGER" json:"FetchEnd"`
+	IssueBegin    int    `db:"IssueBegin"    dtype:"INTEGER" json:"IssueBegin"`
+	IssueStall    int    `db:"IssueStall"    dtype:"INTEGER" json:"IssueStall"`
+	IssueActive   int    `db:"IssueActive"   dtype:"INTEGER" json:"IssueActive"`
+	IssueEnd      int    `db:"IssueEnd"      dtype:"INTEGER" json:"IssueEnd"`
+	DecodeBegin   int    `db:"DecodeBegin"   dtype:"INTEGER" json:"DecodeBegin"`
+	DecodeStall   int    `db:"DecodeStall"   dtype:"INTEGER" json:"DecodeStall"`
+	DecodeActive  int    `db:"DecodeActive"  dtype:"INTEGER" json:"DecodeActive"`
+	DecodeEnd     int    `db:"DecodeEnd"     dtype:"INTEGER" json:"DecodeEnd"`
+	ReadBegin     int    `db:"ReadBegin"     dtype:"INTEGER" json:"ReadBegin"`
+	ReadStall     int    `db:"ReadStall"     dtype:"INTEGER" json:"ReadStall"`
+	ReadActive    int    `db:"ReadActive"    dtype:"INTEGER" json:"ReadActive"`
+	ReadEnd       int    `db:"ReadEnd"       dtype:"INTEGER" json:"ReadEnd"`
+	ExecuteBegin  int    `db:"ExecuteBegin"  dtype:"INTEGER" json:"ExecuteBegin"`
+	ExecuteStall  int    `db:"ExecuteStall"  dtype:"INTEGER" json:"ExecuteStall"`
+	ExecuteActive int    `db:"ExecuteActive" dtype:"INTEGER" json:"ExecuteActive"`
+	ExecuteEnd    int    `db:"ExecuteEnd"    dtype:"INTEGER" json:"ExecuteEnd"`
+	WriteBegin    int    `db:"WriteBegin"    dtype:"INTEGER" json:"WriteBegin"`
+	WriteStall    int    `db:"WriteStall"    dtype:"INTEGER" json:"WriteStall"`
+	WriteActive   int    `db:"WriteActive"   dtype:"INTEGER" json:"WriteActive"`
+	WriteEnd      int    `db:"WriteEnd"      dtype:"INTEGER" json:"WriteEnd"`
+	GID           int    `db:"GID"           dtype:"INTEGER" json:"GID"`
+	ID            int    `db:"ID"            dtype:"INTEGER" json:"ID"`
+	CU            int    `db:"CU"            dtype:"INTEGER" json:"CU"`
+	IB            int    `db:"IB"            dtype:"INTEGER" json:"IB"`
+	WF            int    `db:"WF"            dtype:"INTEGER" json:"WF"`
+	WG            int    `db:"WG"            dtype:"INTEGER" json:"WG"`
+	UOP           int    `db:"UOP"           dtype:"INTEGER" json:"UOP"`
+	ExecutionUnit string `db:"ExecutionUnit" dtype:"TEXT"    json:"ExecutionUnit"`
+	Type          string `db:"Type"          dtype:"TEXT"    json:"Type"`
+	Assembly      string `db:"Assembly"      dtype:"TEXT"    json:"Assembly"`
+}

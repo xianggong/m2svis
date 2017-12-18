@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/golang/glog"
@@ -14,7 +15,6 @@ func GetTraceCount(traceName string, filter string) (out TraceCount, err error) 
 	err = GetInstance().Get(&traceCount, query)
 	if err != nil {
 		glog.Warning(err)
-		return traceCount, err
 	}
 	return traceCount, err
 }
@@ -22,7 +22,7 @@ func GetTraceCount(traceName string, filter string) (out TraceCount, err error) 
 // GetTraceMeta returns metadata of a trace
 func GetTraceMeta(traceName, filter string) (out TraceMeta, err error) {
 	traceCount := TraceMeta{}
-	query := fmt.Sprintf("SELECT count(*) as CountInsts, min(st) as MinCycle, max(fn) as MaxCycle, sum(fsw+fsb+ism+isw+isb+dsw+dsb+rsw+rsb+esw+esb+wsw+wsb) as CountStall, count(distinct wf) as CountWF, count(distinct wg) as CountWG, count(distinct cu) as CountCU from %s %s", traceName, filter)
+	query := fmt.Sprintf("SELECT count(*) as CountInsts, min(Start) as MinCycle, max(Finish) as MaxCycle, sum(FetchStall+IssueStall+DecodeStall+ReadStall+ExecuteStall+WriteStall) as CountStall, count(distinct WF) as CountWF, count(distinct WG) as CountWG, count(distinct CU) as CountCU from %s %s", traceName, filter)
 	err = GetInstance().Get(&traceCount, query)
 	if err != nil {
 		glog.Warning(err)
@@ -34,7 +34,7 @@ func GetTraceMeta(traceName, filter string) (out TraceMeta, err error) {
 // GetTraceStall returns stall information
 func GetTraceStall(traceName, filter string) (out TraceStall, err error) {
 	traceStall := TraceStall{}
-	query := fmt.Sprintf("SELECT sum(fsw+fsb+ism+isw+isb+dsw+dsb+rsw+rsb+esw+esb+wsw+wsb) as StallTotal, sum(fsw+fsb) as StallFrontend, sum(ism+isw+isb) as StallIssue, sum(dsw+dsb) as StallDecode, sum(rsw+rsb) as StallRead, sum(esw+esb) as StallExecute, sum(wsw+wsb) as StallWrite from %s %s", traceName, filter)
+	query := fmt.Sprintf("SELECT sum(FetchStall+IssueStall+DecodeStall+ReadStall+ExecuteStall+WriteStall) as StallTotal, sum(FetchStall) as StallFrontend, sum(IssueStall) as StallIssue, sum(DecodeStall) as StallDecode, sum(ReadStall) as StallRead, sum(ExecuteStall) as StallExecute, sum(WriteStall) as StallWrite from %s %s", traceName, filter)
 	err = GetInstance().Get(&traceStall, query)
 	if err != nil {
 		glog.Warning(err)
@@ -46,50 +46,19 @@ func GetTraceStall(traceName, filter string) (out TraceStall, err error) {
 // GetTraceNumCU returns number of compute unit
 func GetTraceNumCU(traceName string) int {
 	numCU := 0
-	queryCountCU := fmt.Sprintf("select count(distinct cu) from %s", traceName)
+	queryCountCU := fmt.Sprintf("SELECT count(distinct CU) from %s", traceName)
 	GetInstance().Get(&numCU, queryCountCU)
 	return numCU
 }
 
-// GetTraceStallRow returns stall information row by row
-func GetTraceStallRow(traceName, filter string) ([]TraceStall, error) {
-	numCU := GetTraceNumCU(traceName)
-	queryStall := []string{}
-	for i := 0; i < numCU; i++ {
-		queryStall = append(queryStall, fmt.Sprintf("select sum(fsw+fsb+ism+isw+isb+dsw+dsb+rsw+rsb+esw+esb+wsw+wsb) as StallTotal, sum(fsw+fsb) as StallFrontend, sum(ism+isw+isb) as StallIssue, sum(dsw+dsb) as StallDecode, sum(rsw+rsb) as StallRead, sum(esw+esb) as StallExecute, sum(wsw+wsb) as StallWrite from %s where cu = %d", traceName, i))
-	}
-	query := strings.Join(queryStall, " UNION ALL ")
-
-	result := []TraceStall{}
-	err := GetInstance().Select(&result, query)
-
-	return result, err
-}
-
 // GetTraceStallColumn returns stall information column by column
 func GetTraceStallColumn(traceName, filter string) (TraceStallColumn, error) {
-	countCU := GetTraceNumCU(traceName)
-
-	queryStallFrontend := []string{}
-	queryStallIssue := []string{}
-	queryStallDecode := []string{}
-	queryStallRead := []string{}
-	queryStallExecute := []string{}
-	queryStallWrite := []string{}
-	for i := 0; i < countCU; i++ {
-		queryStallFrontend = append(queryStallFrontend, fmt.Sprintf("select sum(fsw+fsb) as StallFrontend from %s where cu = %d", traceName, i))
-		queryStallIssue = append(queryStallIssue, fmt.Sprintf("select sum(ism++isw+isb) as StallIssue from %s where cu = %d", traceName, i))
-		queryStallDecode = append(queryStallDecode, fmt.Sprintf("select sum(dsw+dsb) as StallDecode from %s where cu = %d", traceName, i))
-		queryStallRead = append(queryStallRead, fmt.Sprintf("select sum(rsw+rsb) as StallRead from %s where cu = %d", traceName, i))
-		queryStallExecute = append(queryStallExecute, fmt.Sprintf("select sum(esw+esb) as StallExecute from %s where cu = %d", traceName, i))
-		queryStallWrite = append(queryStallWrite, fmt.Sprintf("select sum(wsw+wsb) as StallWrite from %s where cu = %d", traceName, i))
-	}
-	queryF := strings.Join(queryStallFrontend, " UNION ALL ")
-	queryI := strings.Join(queryStallIssue, " UNION ALL ")
-	queryD := strings.Join(queryStallDecode, " UNION ALL ")
-	queryR := strings.Join(queryStallRead, " UNION ALL ")
-	queryE := strings.Join(queryStallExecute, " UNION ALL ")
-	queryW := strings.Join(queryStallWrite, " UNION ALL ")
+	queryF := fmt.Sprintf("select sum(FetchStall) as StallFrontend from %s GROUP BY cu", traceName)
+	queryI := fmt.Sprintf("select sum(IssueStall) as StallIssue from %s GROUP BY cu", traceName)
+	queryD := fmt.Sprintf("select sum(DecodeStall) as StallDecode from %s GROUP BY cu", traceName)
+	queryR := fmt.Sprintf("select sum(ReadStall) as StallRead from %s GROUP BY cu", traceName)
+	queryE := fmt.Sprintf("select sum(ExecuteStall) as StallExecute from %s GROUP BY cu", traceName)
+	queryW := fmt.Sprintf("select sum(WriteStall) as StallWrite from %s GROUP BY cu", traceName)
 
 	stallColumn := TraceStallColumn{}
 	GetInstance().Select(&stallColumn.Frontend, queryF)
@@ -102,92 +71,21 @@ func GetTraceStallColumn(traceName, filter string) (TraceStallColumn, error) {
 	return stallColumn, nil
 }
 
-// GetTraceActiveCount returns count of active instructions
-func GetTraceActiveCount(traceName string, cuid, start, finish, windowSize int) (map[string][]int, error) {
-	st := start
-	fn := finish
-	meta, _ := GetTraceMeta(traceName, "")
-	if start > meta.MaxCycle {
-		return make(map[string][]int), nil
-	}
-	if finish > meta.MaxCycle {
-		fn = meta.MaxCycle
-	}
-
-	step := 1
-	if windowSize >= 1 {
-		step = windowSize
-	}
-
-	queryMap := map[string]string{
-		"Branch":       `SELECT COUNT(*) FROM %s WHERE st <= %d AND fn >= %d AND eu = "Branch" `,
-		"LDS":          `SELECT COUNT(*) FROM %s WHERE st <= %d AND fn >= %d AND eu = "LDS" `,
-		"VectorMemory": `SELECT COUNT(*) FROM %s WHERE st <= %d AND fn >= %d AND eu = "VectorMemory" `,
-		"Scalar":       `SELECT COUNT(*) FROM %s WHERE st <= %d AND fn >= %d AND eu = "Scalar" `,
-		"SIMD":         `SELECT COUNT(*) FROM %s WHERE st <= %d AND fn >= %d AND eu = "SIMD" `,
-	}
-
-	activeInstsMap := make(map[string][]int)
-
-	// Cycle information
-	activeCycle := []int{}
-	for i := st; i <= fn; i += step {
-		activeCycle = append(activeCycle, i)
-	}
-	activeInstsMap["Cycle"] = activeCycle
-
-	// Count information
-	for key, value := range queryMap {
-		activeInsts := []int{}
-		for i := 0; i <= fn-st; i += step {
-			count := 0
-			query := fmt.Sprintf(value, traceName, i+st+windowSize, i+st)
-			if cuid != -1 {
-				query += fmt.Sprintf(" AND cu = %d ", cuid)
-			}
-			err := GetInstance().Get(&count, query)
-			if err != nil {
-				glog.Error(err)
-			} else {
-				activeInsts = append(activeInsts, count)
-			}
-		}
-		activeInstsMap[key] = activeInsts
-	}
-
-	return activeInstsMap, nil
-}
-
 // GetInstCountByInstType returns number of instructions of each type
 func GetInstCountByInstType(tracename string) map[string]int {
-	queryMap := map[string]string{
-		"SOP2":  `SELECT COUNT(*) FROM %s WHERE type="SOP2"`,
-		"SOPK":  `SELECT COUNT(*) FROM %s WHERE type="SOPK"`,
-		"SOP1":  `SELECT COUNT(*) FROM %s WHERE type="SOP1"`,
-		"SOPC":  `SELECT COUNT(*) FROM %s WHERE type="SOPC"`,
-		"SOPP":  `SELECT COUNT(*) FROM %s WHERE type="SOPP"`,
-		"SMRD":  `SELECT COUNT(*) FROM %s WHERE type="SMRD"`,
-		"VOP2":  `SELECT COUNT(*) FROM %s WHERE type="VOP2"`,
-		"VOP1":  `SELECT COUNT(*) FROM %s WHERE type="VOP1"`,
-		"VOPC":  `SELECT COUNT(*) FROM %s WHERE type="VOPC"`,
-		"VOP3A": `SELECT COUNT(*) FROM %s WHERE type="VOP3A"`,
-		"VOP3B": `SELECT COUNT(*) FROM %s WHERE type="VOP3B"`,
-		"DS":    `SELECT COUNT(*) FROM %s WHERE type="DS"`,
-		"MUBUF": `SELECT COUNT(*) FROM %s WHERE type="MUBUF"`,
-		"MTBUF": `SELECT COUNT(*) FROM %s WHERE type="MTBUF"`,
-		"MIMG":  `SELECT COUNT(*) FROM %s WHERE type="MIMG"`,
-	}
+	instType := GetInstType(tracename)
+	template := `SELECT COUNT(*) FROM %s WHERE Type = "%s"`
 
 	// Get from database
 	instCountByType := map[string]int{}
-	for key, value := range queryMap {
+	for _, instType := range instType {
 		count := 0
-		err := GetInstance().Get(&count, fmt.Sprintf(value, tracename))
+		err := GetInstance().Get(&count, fmt.Sprintf(template, tracename, instType))
 		if err != nil {
 			glog.Error(err)
 			return map[string]int{}
 		}
-		instCountByType[key] = count
+		instCountByType[instType] = count
 	}
 
 	return instCountByType
@@ -196,11 +94,11 @@ func GetInstCountByInstType(tracename string) map[string]int {
 // GetInstCountByExecUnit returns number of instructions on each execution unit
 func GetInstCountByExecUnit(tracename string) map[string]int {
 	queryMap := map[string]string{
-		"Branch":       `SELECT COUNT(*) FROM %s WHERE eu="Branch"`,
-		"LDS":          `SELECT COUNT(*) FROM %s WHERE eu="LDS"`,
-		"VectorMemory": `SELECT COUNT(*) FROM %s WHERE eu="VectorMemory"`,
-		"Scalar":       `SELECT COUNT(*) FROM %s WHERE eu="Scalar"`,
-		"SIMD":         `SELECT COUNT(*) FROM %s WHERE eu="SIMD"`,
+		"Branch":       `SELECT COUNT(*) FROM %s WHERE ExecutionUnit="branch"`,
+		"LDS":          `SELECT COUNT(*) FROM %s WHERE ExecutionUnit="lds"`,
+		"VectorMemory": `SELECT COUNT(*) FROM %s WHERE ExecutionUnit="simd-m"`,
+		"Scalar":       `SELECT COUNT(*) FROM %s WHERE ExecutionUnit="scalar"  `,
+		"SIMD":         `SELECT COUNT(*) FROM %s WHERE ExecutionUnit="simd"`,
 	}
 
 	// Get from database
@@ -218,36 +116,95 @@ func GetInstCountByExecUnit(tracename string) map[string]int {
 	return instCountByExecUnit
 }
 
-// GetCycleCountByInstType returns number of instructions on each execution unit
-func GetCycleCountByInstType(tracename string) map[string]int {
+// GetInstLengthByExecUnit returns number of instructions on each execution unit
+func GetInstLengthByExecUnit(tracename string) map[string]float64 {
 	queryMap := map[string]string{
-		"SOP2":  `SELECT COALESCE(SUM(len), 0) FROM %s WHERE type="SOP2"`,
-		"SOPK":  `SELECT COALESCE(SUM(len), 0) FROM %s WHERE type="SOPK"`,
-		"SOP1":  `SELECT COALESCE(SUM(len), 0) FROM %s WHERE type="SOP1"`,
-		"SOPC":  `SELECT COALESCE(SUM(len), 0) FROM %s WHERE type="SOPC"`,
-		"SOPP":  `SELECT COALESCE(SUM(len), 0) FROM %s WHERE type="SOPP"`,
-		"SMRD":  `SELECT COALESCE(SUM(len), 0) FROM %s WHERE type="SMRD"`,
-		"VOP2":  `SELECT COALESCE(SUM(len), 0) FROM %s WHERE type="VOP2"`,
-		"VOP1":  `SELECT COALESCE(SUM(len), 0) FROM %s WHERE type="VOP1"`,
-		"VOPC":  `SELECT COALESCE(SUM(len), 0) FROM %s WHERE type="VOPC"`,
-		"VOP3A": `SELECT COALESCE(SUM(len), 0) FROM %s WHERE type="VOP3A"`,
-		"VOP3B": `SELECT COALESCE(SUM(len), 0) FROM %s WHERE type="VOP3B"`,
-		"DS":    `SELECT COALESCE(SUM(len), 0) FROM %s WHERE type="DS"`,
-		"MUBUF": `SELECT COALESCE(SUM(len), 0) FROM %s WHERE type="MUBUF"`,
-		"MTBUF": `SELECT COALESCE(SUM(len), 0) FROM %s WHERE type="MTBUF"`,
-		"MIMG":  `SELECT COALESCE(SUM(len), 0) FROM %s WHERE type="MIMG"`,
+		"Branch":       `SELECT AVG(Length) FROM %s WHERE ExecutionUnit="branch"`,
+		"LDS":          `SELECT AVG(Length) FROM %s WHERE ExecutionUnit="lds"`,
+		"VectorMemory": `SELECT AVG(Length) FROM %s WHERE ExecutionUnit="simd-m"`,
+		"Scalar":       `SELECT AVG(Length) FROM %s WHERE ExecutionUnit="scalar"  `,
+		"SIMD":         `SELECT AVG(Length) FROM %s WHERE ExecutionUnit="simd"`,
 	}
 
 	// Get from database
-	cycleCountByType := map[string]int{}
+	instLengthByExecUnit := map[string]float64{}
 	for key, value := range queryMap {
+		length := []uint8{}
+		err := GetInstance().Get(&length, fmt.Sprintf(value, tracename))
+		if err != nil {
+			glog.Error(err)
+			return map[string]float64{}
+		}
+		lengthFloat, _ := strconv.ParseFloat(string(length), 64)
+		instLengthByExecUnit[key] = lengthFloat
+	}
+
+	return instLengthByExecUnit
+}
+
+func GetInstType(tracename string) []string {
+	template := "SELECT Type from %s GROUP BY Type"
+	query := fmt.Sprintf(template, tracename)
+	result := []string{}
+	err := GetInstance().Select(&result, query)
+	if err != nil {
+		glog.Error(err)
+		return []string{}
+	}
+	return result
+}
+
+func GetExecUnit(tracename string) []string {
+	template := "SELECT ExecutionUnit from %s GROUP BY ExecutionUnit"
+	query := fmt.Sprintf(template, tracename)
+	result := []string{}
+	err := GetInstance().Select(&result, query)
+	if err != nil {
+		glog.Error(err)
+		return []string{}
+	}
+	return result
+}
+
+// GetInstLengthByInstType returns number of instructions on each execution unit
+func GetInstLengthByInstType(tracename string) map[string][]uint {
+	instType := GetInstType(tracename)
+	evalFunc := []string{"Min", "Max", "Avg"}
+	template := `SELECT CAST(%s(Length) AS UNSIGNED) AS Length FROM %s WHERE Type="%s"`
+
+	result := map[string][]uint{}
+	for _, evalFunc := range evalFunc {
+		info := []uint{}
+		queries := []string{}
+		for _, instType := range instType {
+			queries = append(queries, fmt.Sprintf(template, evalFunc, tracename, instType))
+		}
+		query := strings.Join(queries, " UNION ALL ")
+		err := GetInstance().Select(&info, query)
+		if err != nil {
+			glog.Error(err)
+		}
+		result[evalFunc] = info
+	}
+
+	return result
+}
+
+// GetCycleCountByInstType returns number of instructions on each execution unit
+func GetCycleCountByInstType(tracename string) map[string]int {
+	instType := GetInstType(tracename)
+	template := `SELECT COALESCE(SUM(Length), 0) FROM %s WHERE Type = "%s"`
+
+	// Get from database
+	cycleCountByType := map[string]int{}
+	for _, instType := range instType {
 		count := 0
-		err := GetInstance().Get(&count, fmt.Sprintf(value, tracename))
+		err := GetInstance().Get(&count, fmt.Sprintf(template, tracename, instType))
 		if err != nil {
 			glog.Error(err)
 			return map[string]int{}
 		}
-		cycleCountByType[key] = count
+		cycleCountByType[instType] = count
 	}
 
 	return cycleCountByType
@@ -256,11 +213,11 @@ func GetCycleCountByInstType(tracename string) map[string]int {
 // GetCycleCountByExecUnit returns number of instructions on each execution unit
 func GetCycleCountByExecUnit(tracename string) map[string]int {
 	queryMap := map[string]string{
-		"Branch":       `SELECT COALESCE(SUM(len), 0) FROM %s WHERE eu="Branch"`,
-		"LDS":          `SELECT COALESCE(SUM(len), 0) FROM %s WHERE eu="LDS"`,
-		"VectorMemory": `SELECT COALESCE(SUM(len), 0) FROM %s WHERE eu="VectorMemory"`,
-		"Scalar":       `SELECT COALESCE(SUM(len), 0) FROM %s WHERE eu="Scalar"`,
-		"SIMD":         `SELECT COALESCE(SUM(len), 0) FROM %s WHERE eu="SIMD"`,
+		"Branch":       `SELECT COALESCE(SUM(Length), 0) FROM %s WHERE ExecutionUnit="branch"`,
+		"LDS":          `SELECT COALESCE(SUM(Length), 0) FROM %s WHERE ExecutionUnit="lds"`,
+		"VectorMemory": `SELECT COALESCE(SUM(Length), 0) FROM %s WHERE ExecutionUnit="simd-m"`,
+		"Scalar":       `SELECT COALESCE(SUM(Length), 0) FROM %s WHERE ExecutionUnit="scalar"`,
+		"SIMD":         `SELECT COALESCE(SUM(Length), 0) FROM %s WHERE ExecutionUnit="simd"`,
 	}
 
 	// Get from database
@@ -279,12 +236,13 @@ func GetCycleCountByExecUnit(tracename string) map[string]int {
 	return cycleCountByExecUnit
 }
 
+// GetCycleCountByCU returns exectution time
 func GetCycleCountByCU(tracename string) map[int]int {
 	cycleCountByCU := map[int]int{}
 	countCU := GetTraceNumCU(tracename)
 	for cuid := 0; cuid < countCU; cuid++ {
 		len := 0
-		query := fmt.Sprintf("SELECT MAX(fn) FROM %s WHERE cu=%d", tracename, cuid)
+		query := fmt.Sprintf("SELECT MAX(Finish) - MIN(Start) FROM %s WHERE CU=%d", tracename, cuid)
 		err := GetInstance().Get(&len, query)
 		if err != nil {
 			glog.Error(err)

@@ -104,22 +104,6 @@ func statsStall(w http.ResponseWriter, r *http.Request) {
 	w.Write(enc)
 }
 
-func statsStallRow(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	traceName := vars["traceName"]
-
-	stallRow, err := database.GetTraceStallRow(traceName, "")
-	if err != nil {
-		glog.Error(err)
-		return
-	}
-
-	// Encode to JSON and write
-	enc, _ := json.Marshal(stallRow)
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(enc)
-}
-
 func statsStallColumn(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	traceName := vars["traceName"]
@@ -160,6 +144,18 @@ func CUActiveInsts(w http.ResponseWriter, r *http.Request) {
 	w.Write(enc)
 }
 
+func instType(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	traceName := vars["traceName"]
+
+	data := database.GetInstType(traceName)
+
+	// Encode to JSON and write
+	enc, _ := json.Marshal(data)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(enc)
+}
+
 func instCountByInstType(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	traceName := vars["traceName"]
@@ -180,6 +176,50 @@ func instCountByExecUnit(w http.ResponseWriter, r *http.Request) {
 
 	// Encode to JSON and write
 	enc, _ := json.Marshal(data)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(enc)
+}
+
+func instLengthByExecUnit(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	traceName := vars["traceName"]
+
+	data := database.GetInstLengthByExecUnit(traceName)
+
+	// Encode to JSON and write
+	enc, _ := json.Marshal(data)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(enc)
+}
+
+func instLengthByInstType(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	traceName := vars["traceName"]
+
+	data := database.GetInstLengthByInstType(traceName)
+
+	// Encode to JSON and write
+	enc, _ := json.Marshal(data)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(enc)
+}
+
+// execUnitUtilization returns active instructions
+func execUnitUtilization(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	traceName := vars["traceName"]
+
+	r.ParseForm()
+
+	start, _ := strconv.Atoi(r.Form.Get("start"))
+	finish, _ := strconv.Atoi(r.Form.Get("finish"))
+	cu, _ := strconv.Atoi(r.Form.Get("cu"))
+	windowSize, _ := strconv.Atoi(r.Form.Get("windowSize"))
+
+	utilization := database.GetExecUnitUtilization(traceName, cu, start, finish, windowSize)
+
+	// Encode to JSON and write
+	enc, _ := json.Marshal(utilization)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(enc)
 }

@@ -246,3 +246,46 @@ func (inst *Instruction) Dump() string {
 	}
 	return infoField + "\n" + infoValue
 }
+
+func GetQueryCreateInstTableCSV(tableName string) string {
+	query := "CREATE TABLE IF NOT EXISTS " + tableName + " ("
+	obj := new(InstructionCSV)
+	val := reflect.ValueOf(obj).Elem()
+	for i := 0; i < val.NumField(); i++ {
+		typeField := val.Type().Field(i)
+		tag := typeField.Tag
+		if tag != "" {
+			dbColName := tag.Get("db")
+			dbColType := tag.Get("dtype")
+			if dbColName != "-" && dbColType != "-" {
+				query += dbColName + " " + dbColType + ", "
+			}
+		}
+	}
+
+	// Primary key
+	query += " PRIMARY KEY (gid));"
+
+	return query
+}
+
+// GetInstSQLColNames returns all columns name of the instruction struct
+func GetInstSQLColNamesCSV(prefix string, suffix string) (str string) {
+	str = "("
+
+	// Loop through the struct's tags and append to query
+	inst := new(InstructionCSV)
+	val := reflect.ValueOf(inst).Elem()
+	for i := 0; i < val.NumField(); i++ {
+		typeField := val.Type().Field(i)
+		tag := typeField.Tag
+		if tag != "" {
+			str += prefix + tag.Get("db") + suffix
+		}
+	}
+
+	str = strings.TrimSuffix(str, suffix)
+	str += ")"
+
+	return str
+}

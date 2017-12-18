@@ -41,7 +41,7 @@ func (conf *config) getDSN() string {
 	dsn := conf.Username + ":" + conf.Password + "@"
 	dsn += conf.Protocol + "(" + conf.Address + ":" + conf.Port + ")"
 	dsn += "/" + conf.Database
-	dsn += "?parseTime=true"
+	dsn += "?parseTime=true&allowAllFiles=true"
 
 	return dsn
 }
